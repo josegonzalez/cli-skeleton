@@ -25,7 +25,7 @@ func Run(args []string) int {
 	commandMeta, ui := command.SetupRun(AppName, Version, args)
 	c := cli.NewCLI(AppName, Version)
 	c.Args = os.Args[1:]
-	c.Commands = command.Commands(commandMeta, ui, Subcommands)
+	c.Commands = command.Commands(commandMeta, ui, Commands)
 	exitCode, err := c.Run()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error executing CLI: %s\n", err.Error())
@@ -35,8 +35,8 @@ func Run(args []string) int {
 	return exitCode
 }
 
-// Returns a list of implemented subcommands
-func Subcommands(meta command.Meta) map[string]cli.CommandFactory {
+// Returns a list of implemented commands
+func Commands(meta command.Meta) map[string]cli.CommandFactory {
 	return map[string]cli.CommandFactory{
 		"eat": func() (cli.Command, error) {
 			return &commands.EatCommand{Meta: meta}, nil

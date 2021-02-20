@@ -42,12 +42,12 @@ func main() {
   os.Exit(Run(os.Args[1:]))
 }
 
-// Executes the specified subcommand
+// Executes the specified command
 func Run(args []string) int {
   commandMeta, ui := command.SetupRun(AppName, Version, args)
   c := cli.NewCLI(AppName, Version)
   c.Args = os.Args[1:]
-  c.Commands = command.Commands(commandMeta, ui, Subcommands)
+  c.Commands = command.Commands(commandMeta, ui, Commands)
   exitCode, err := c.Run()
   if err != nil {
     fmt.Fprintf(os.Stderr, "Error executing CLI: %s\n", err.Error())
@@ -57,8 +57,8 @@ func Run(args []string) int {
   return exitCode
 }
 
-// Returns a list of implemented subcommands
-func Subcommands(meta command.Meta) map[string]cli.CommandFactory {
+// Returns a list of implemented commands
+func Commands(meta command.Meta) map[string]cli.CommandFactory {
   return map[string]cli.CommandFactory{
     "version": func() (cli.Command, error) {
       return &command.VersionCommand{Meta: meta}, nil
@@ -82,7 +82,7 @@ The `cli-skeleton` project includes a helpful `version` command that can be exec
 0.1.0
 ```
 
-### Adding additional subcommands
+### Adding additional commands
 
 Adding a new subcommand is straightforward. For the example `lollipop` app, an `eat` command will be created. To start, create a `commands` directory that contains an `eat.go` file. This file should contain an `EatCommand` struct as follows:
 
@@ -149,7 +149,7 @@ As long as all the other interface functions are implemented, the `eat` command 
 
 #### Help examples
 
-> While examples are excellent, it is recommended to have 5 or fewer examples in the help output. Further examples should be sent to documentation or potentially result in splitting the subcommand into multiple subcommands.
+> While examples are excellent, it is recommended to have 5 or fewer examples in the help output. Further examples should be sent to documentation or potentially result in splitting the command into multiple commands.
 
 Users wishing to understand _how_ to use cli tool will want a few examples. These can be easily specified like so:
 
@@ -331,7 +331,7 @@ Additionally, the `Run()` command returns an integer, which represents the respo
 
 #### Adding the command to the cli
 
-To add the new command, modify the `Subcommands()` function in the `main.go` to specify the new `eat` subcommand. The following is the full content of that function, including the necessary import statements:
+To add the new command, modify the `Commands()` function in the `main.go` to specify the new `eat` subcommand. The following is the full content of that function, including the necessary import statements:
 
 ```
 import (
@@ -341,8 +341,8 @@ import (
   "github.com/mitchellh/cli"
 )
 
-// Returns a list of implemented subcommands
-func Subcommands(meta command.Meta) map[string]cli.CommandFactory {
+// Returns a list of implemented commands
+func Commands(meta command.Meta) map[string]cli.CommandFactory {
   return map[string]cli.CommandFactory{
     "eat": func() (cli.Command, error) {
       return &commands.EatCommand{Meta: meta}, nil
