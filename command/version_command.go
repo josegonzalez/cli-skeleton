@@ -1,11 +1,12 @@
 package command
 
 import (
-	"flag"
 	"fmt"
 	"os"
 
 	"github.com/posener/complete"
+
+	flag "github.com/spf13/pflag"
 )
 
 type VersionCommand struct {
