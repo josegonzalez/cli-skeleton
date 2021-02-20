@@ -103,7 +103,7 @@ func (m *Meta) Colorize() *colorstring.Colorize {
 func GeneralOptionsUsage() string {
 	helpText := `
   --no-color
-    Disables colored command output. Alternatively, CLI_NO_COLOR may be
+    Disables colored command output. Alternatively, NO_COLOR may be
     set.
 `
 	return strings.TrimSpace(helpText)
