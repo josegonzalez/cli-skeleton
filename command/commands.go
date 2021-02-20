@@ -2,9 +2,11 @@ package command
 
 import (
 	"os"
+	"strings"
 
 	"github.com/mattn/go-colorable"
 	"github.com/mitchellh/cli"
+	flag "github.com/spf13/pflag"
 )
 
 const (
@@ -42,4 +44,29 @@ func Commands(metaPtr *Meta, agentUi cli.Ui, commands CommandFunc) map[string]cl
 	}
 
 	return all
+}
+
+type Command interface {
+	Name() string
+	FlagSet() *flag.FlagSet
+	Arguments() []Argument
+	Synopsis() string
+	Examples() map[string]string
+}
+
+func CommandHelp(c Command) string {
+	appName := os.Getenv("CLI_APP_NAME")
+	helpText := `
+Usage: ` + appName + ` ` + c.Name() + ` ` + FlagString(c.FlagSet()) + ` ` + ArgumentAsString(c.Arguments()) + `
+
+  ` + c.Synopsis() + `
+
+General Options:
+  ` + GeneralOptionsUsage() + `
+
+Example:
+
+` + ExampleString(c.Examples())
+
+	return strings.TrimSpace(helpText)
 }

@@ -66,31 +66,6 @@ func (m *Meta) AutocompleteFlags(fs FlagSetFlags) complete.Flags {
 	}
 }
 
-type Command interface {
-	Name() string
-	FlagSet() *flag.FlagSet
-	Arguments() []Argument
-	Synopsis() string
-	Examples() map[string]string
-}
-
-func CommandHelp(c Command) string {
-	appName := os.Getenv("CLI_APP_NAME")
-	helpText := `
-Usage: ` + appName + ` ` + c.Name() + ` ` + FlagString(c.FlagSet()) + ` ` + ArgumentAsString(c.Arguments()) + `
-
-  ` + c.Synopsis() + `
-
-General Options:
-  ` + GeneralOptionsUsage() + `
-
-Example:
-
-` + ExampleString(c.Examples())
-
-	return strings.TrimSpace(helpText)
-}
-
 func (m *Meta) Colorize() *colorstring.Colorize {
 	return &colorstring.Colorize{
 		Colors:  colorstring.DefaultColors,
