@@ -1,6 +1,6 @@
 # cli-skeleton
 
-A simple golang cli skeleton built on top of [mitchellh/cli](https://github.com/mitchellh/cli).
+An opinionated framework for building golang cli tools on top of [mitchellh/cli](https://github.com/mitchellh/cli).
 
 ## Why
 
