@@ -74,7 +74,7 @@ type Command interface {
 	Examples() map[string]string
 }
 
-func CommandHelp(c *Command) string {
+func CommandHelp(c Command) string {
 	appName := os.Getenv("CLI_APP_NAME")
 	helpText := `
 Usage: ` + appName + ` ` + c.Name() + ` ` + FlagString(c.FlagSet()) + ` ` + ArgumentAsString(c.Arguments()) + `
