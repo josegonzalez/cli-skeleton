@@ -1,4 +1,4 @@
-module cli-skeleton
+module github.com/josegonzalez/cli-skeleton
 
 go 1.15
 
