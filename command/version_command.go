@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/posener/complete"
-
 	flag "github.com/spf13/pflag"
 )
 

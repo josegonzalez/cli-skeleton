@@ -1,7 +1,6 @@
 package command
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"strings"
@@ -9,6 +8,7 @@ import (
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
 	"github.com/posener/complete"
+	flag "github.com/spf13/pflag"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
