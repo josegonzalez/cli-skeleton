@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/posener/complete"
 )
@@ -14,20 +13,7 @@ type VersionCommand struct {
 }
 
 func (c *VersionCommand) Help() string {
-	appName := os.Getenv("CLI_APP_NAME")
-	helpText := `
-Usage: ` + appName + ` ` + c.Name() + ` ` + FlagString(c.FlagSet()) + ` ` + ArgumentAsString(c.Arguments()) + `
-
-  ` + c.Synopsis() + `
-
-General Options:
-  ` + GeneralOptionsUsage() + `
-
-Example:
-
-` + ExampleString(c.Examples())
-
-	return strings.TrimSpace(helpText)
+	return CommandHelp(c)
 }
 
 func (c *VersionCommand) Arguments() []Argument {
