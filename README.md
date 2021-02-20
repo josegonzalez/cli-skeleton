@@ -6,6 +6,8 @@ An opinionated framework for building golang cli tools on top of [mitchellh/cli]
 
 While `mitchellh/cli` gives quite a bit of code to allow folks to build cli tools on top of it, it does not provide enough structure to allow folks to get started quickly. This project aims to fill that void by implementing a skeleton based upon those provided by the hashicorp suite of tools.
 
+See [Command Line Interface Guidelines](https://clig.dev/) for further reading on how to structure command line tools.
+
 ## Getting started
 
 > The source for this example is stored in the `example/lollipop` directory.
