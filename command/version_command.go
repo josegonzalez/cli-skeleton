@@ -59,6 +59,8 @@ func (c *VersionCommand) Run(args []string) int {
 	flags := c.FlagSet()
 	flags.Usage = func() { c.Ui.Output(c.Help()) }
 	if err := flags.Parse(args); err != nil {
+		c.Ui.Error(err.Error())
+		c.Ui.Error(CommandErrorText(c))
 		return 1
 	}
 
