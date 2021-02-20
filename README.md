@@ -10,7 +10,7 @@ See [Command Line Interface Guidelines](https://clig.dev/) for further reading o
 
 ## Getting started
 
-> The source for this example is stored in the `example/lollipop` directory.
+> The source for this example is stored in the `examples/lollipop` directory.
 
 To create a new cli tool, the cli-tool will need to be initialized. This tool will be called `lollipop`:
 
@@ -366,4 +366,4 @@ Available commands are:
     version    Return the version of the binary
 ```
 
-If there are any errors in compilation or output, please compare with the code in `example/lollipop`.
+If there are any errors in compilation or output, please compare with the code in `examples/lollipop`.
