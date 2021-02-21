@@ -59,6 +59,21 @@ func (c *GlobalFlagCommand) GlobalFlags(f *flag.FlagSet) {
 }
 ```
 
+To autocomplete the global flags, implement a `AutocompleteGlobalFlags()` function. This function follows the same rules as the `AutocompleteFlags()` function normally implemented on a command
+
+```go
+import (
+	"github.com/posener/complete"
+)
+
+func (c *GlobalFlagCommand) AutocompleteGlobalFlags() complete.Flags {
+	return complete.Flags{
+		"--global":        complete.PredictNothing,
+		"--global-string": complete.PredictAnything,
+	}
+}
+```
+
 Lastly, there should be three modifications to each of the cli tool's commands. The first is to include `GlobalFlagCommand` in the command struct like so:
 
 ```go
