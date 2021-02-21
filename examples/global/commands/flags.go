@@ -31,5 +31,4 @@ func (c *GlobalFlagCommand) AutocompleteGlobalFlags() complete.Flags {
 		"--global":        complete.PredictNothing,
 		"--global-string": complete.PredictAnything,
 	}
-
 }
