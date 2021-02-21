@@ -62,7 +62,7 @@ Usage: ` + appName + ` ` + c.Name() + ` ` + FlagString(c.FlagSet()) + ` ` + Argu
   ` + c.Synopsis() + `
 
 General Options:
-  ` + GeneralOptionsUsage() + `
+  ` + GeneralOptionsUsage(c) + `
 
 Example:
 

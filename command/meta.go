@@ -74,13 +74,23 @@ func (m *Meta) Colorize() *colorstring.Colorize {
 	}
 }
 
+type GlobalFlagCommand interface {
+	GeneralFlagUsage() string
+	GlobalFlags(*flag.FlagSet)
+}
+
 // generalOptionsUsage returns the help string for the global options.
-func GeneralOptionsUsage() string {
+func GeneralOptionsUsage(c Command) string {
 	helpText := `
   --no-color
     Disables colored command output. Alternatively, NO_COLOR may be
     set.
 `
+
+	if g, ok := c.(GlobalFlagCommand); ok {
+		helpText += g.GeneralFlagUsage()
+	}
+
 	return strings.TrimSpace(helpText)
 }
 
