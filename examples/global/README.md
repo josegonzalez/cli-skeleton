@@ -11,10 +11,10 @@ go build
 ## Usage
 
 ```
-Usage: nil [--version] [--help] <command> [<args>]
+Usage: global [--version] [--help] <command> [<args>]
 
 Available commands are:
-    nil        Nil command
+    global     Global command that prints the values of the global flags
     version    Return the version of the binary
 ```
 
