@@ -95,15 +95,13 @@ func ParseArguments(args []string, arguments []Argument) (map[string]Argument, e
 		errorMessage = fmt.Sprintf("%s %s", errorMessage, argumentWord)
 	}
 
-	errorMessage = fmt.Sprintf("%s: %s", errorMessage, ArgumentAsString(arguments))
-
 	if len(args) == 0 {
 		if len(arguments) == 0 {
 			return returnArguments, nil
 		}
 
 		if !arguments[0].Optional {
-			return returnArguments, fmt.Errorf(errorMessage)
+			return returnArguments, fmt.Errorf("%s: %s", errorMessage, ArgumentAsString(arguments))
 		}
 	}
 
@@ -112,7 +110,7 @@ func ParseArguments(args []string, arguments []Argument) (map[string]Argument, e
 		if len(args) != 1 {
 			argumentWord = "arguments"
 		}
-		return returnArguments, fmt.Errorf("%s, %d %s given", errorMessage, len(args), argumentWord)
+		return returnArguments, fmt.Errorf("%s, %d %s given: %s", errorMessage, len(args), argumentWord, ArgumentAsString(arguments))
 	}
 
 	hasListArgument := false
