@@ -107,8 +107,12 @@ func ParseArguments(args []string, arguments []Argument) (map[string]Argument, e
 		}
 	}
 
-	if len(args) < minArgs {
-		return returnArguments, fmt.Errorf(errorMessage)
+	if len(args) < minArgs || len(args) > maxArgs {
+		argumentWord := "argument"
+		if len(args) != 1 {
+			argumentWord = "arguments"
+		}
+		return returnArguments, fmt.Errorf("%s, %d %s given", errorMessage, len(args), argumentWord)
 	}
 
 	hasListArgument := false
