@@ -5,7 +5,8 @@ An example "global" tool for the `cli-skeleton` project. It provides a `global.g
 ## Building
 
 ```shell
-go build
+# substitute the version number as desired
+go build -ldflags "-X main.Version=0.1.0
 ```
 
 ## Usage
