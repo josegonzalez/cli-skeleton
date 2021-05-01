@@ -3,7 +3,7 @@ package command
 import (
 	"os"
 
-	"github.com/mattn/go-colorable"
+	colorable "github.com/mattn/go-colorable"
 	"github.com/mitchellh/cli"
 	"golang.org/x/crypto/ssh/terminal"
 )

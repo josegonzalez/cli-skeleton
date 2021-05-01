@@ -4,7 +4,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/mattn/go-colorable"
+	colorable "github.com/mattn/go-colorable"
 	"github.com/mitchellh/cli"
 	flag "github.com/spf13/pflag"
 )
