@@ -1,4 +1,4 @@
-module lollipop
+module hello-world
 
 go 1.15
 

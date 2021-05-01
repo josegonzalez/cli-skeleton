@@ -11,4 +11,4 @@ See [Command Line Interface Guidelines](https://clig.dev/) for further reading o
 
 ### Examples
 
-For examples on how to perform various tasks, see the `examples` directory.
+For examples on how to perform various tasks, see the [`examples`](examples) directory.

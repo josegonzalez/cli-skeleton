@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"os"
 
-	"lollipop/commands"
+	"hello-world/commands"
 
 	"github.com/josegonzalez/cli-skeleton/command"
 	"github.com/mitchellh/cli"
 )
 
 // The name of the cli tool
-var AppName = "lollipop"
+var AppName = "hello-world"
 
 // Holds the version
 var Version string

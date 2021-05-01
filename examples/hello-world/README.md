@@ -1,4 +1,4 @@
-# lollipop
+# hello-world
 
 An example cli tool for the `cli-skeleton` project.
 
@@ -12,22 +12,20 @@ go build -ldflags "-X main.Version=0.1.0
 ## Usage
 
 ```
-Usage: lollipop [--version] [--help] <command> [<args>]
+Usage: hello-world [--version] [--help] <command> [<args>]
 
 Available commands are:
     eat        Eats one or more lollipops
     version    Return the version of the binary
 ```
 
-## Getting started
+## Implementing this tutorial
 
-> The source for this example is stored in the `examples/lollipop` directory.
-
-To create a new cli tool, the cli-tool will need to be initialized. This tool will be called `lollipop`:
+To create a new cli tool, the cli-tool will need to be initialized. This tool will be called `hello-world`:
 
 ```shell
-mkdir lollipop
-go mod init lollipop
+mkdir hello-world
+go mod init hello-world
 ```
 
 Next, create a `main.go` with the following contents:
@@ -44,7 +42,7 @@ import (
 )
 
 // The name of the cli tool
-var AppName = "lollipop"
+var AppName = "hello-world"
 
 // Holds the version
 var Version string
@@ -78,16 +76,16 @@ func Commands(meta command.Meta) map[string]cli.CommandFactory {
 }
 ```
 
-Run `go build -ldflags "-X main.Version=0.1.0"` to build the `0.1.0` version of the tool in the current directory. Running `./lollipop` will now show the following output:
+Run `go build -ldflags "-X main.Version=0.1.0"` to build the `0.1.0` version of the tool in the current directory. Running `./hello-world` will now show the following output:
 
 ```
-Usage: lollipop [--version] [--help] <command> [<args>]
+Usage: hello-world [--version] [--help] <command> [<args>]
 
 Available commands are:
     version    Return the version of the binary
 ```
 
-The `cli-skeleton` project includes a helpful `version` command that can be executed via `./lollipop version` with the following output:
+The `cli-skeleton` project includes a helpful `version` command that can be executed via `./hello-world version` with the following output:
 
 ```
 0.1.0
@@ -95,7 +93,7 @@ The `cli-skeleton` project includes a helpful `version` command that can be exec
 
 ### Adding additional commands
 
-Adding a new subcommand is straightforward. For the example `lollipop` app, an `eat` command will be created. To start, create a `commands` directory that contains an `eat.go` file. This file should contain an `EatCommand` struct as follows:
+Adding a new subcommand is straightforward. For the example `hello-world` app, an `eat` command will be created. To start, create a `commands` directory that contains an `eat.go` file. This file should contain an `EatCommand` struct as follows:
 
 ```go
 import "github.com/josegonzalez/cli-skeleton/command"
@@ -349,7 +347,7 @@ To add the new command, modify the `Commands()` function in the `main.go` to spe
 
 ```
 import (
-  "lollipop/commands"
+  "hello-world/commands"
 
   "github.com/josegonzalez/cli-skeleton/command"
   "github.com/mitchellh/cli"
@@ -373,11 +371,11 @@ func Commands(meta command.Meta) map[string]cli.CommandFactory {
 Once everything is put together, the `go build -ldflags "-X main.Version=0.1.0"` command - with the version modified as desired - can be executed to rebuild the binary. The following is the new help output:
 
 ```
-Usage: lollipop [--version] [--help] <command> [<args>]
+Usage: hello-world [--version] [--help] <command> [<args>]
 
 Available commands are:
     eat        Eats one or more lollipops
     version    Return the version of the binary
 ```
 
-If there are any errors in compilation or output, please compare with the code in `examples/lollipop`.
+If there are any errors in compilation or output, please compare with the code in this directory.
