@@ -70,6 +70,14 @@ Options:
 ` + options
 	}
 
+	arguments := ArgumentsString(c.Arguments())
+	if arguments != "" {
+		helpText += `
+Arguments:
+
+` + arguments
+	}
+
 	examples := ExampleString(c.Examples())
 	if examples != "" {
 		helpText += `
@@ -78,5 +86,5 @@ Examples:
 ` + examples
 	}
 
-	return strings.TrimSpace(helpText)
+	return strings.TrimSpace(helpText) + "\n"
 }
