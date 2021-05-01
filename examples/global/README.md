@@ -31,21 +31,6 @@ type GlobalFlagCommand struct {
 }
 ```
 
-In addition to the struct, the `GeneralFlagUsage()` function must be implemented on that struct. This will output help text for the global flags. Failure to include this function will result in omitting the global flags from help output.
-
-```go
-func (c *GlobalFlagCommand) GeneralFlagUsage() string {
-  return `
-  --global
-    A bool global flag.
-
-
-  --global-value <value>
-    A string global flag.
-`
-}
-```
-
 Next, a `GlobalFlags` function should be declared. This function assigns the values of the global flags to the aforementioned struct.
 
 ```go

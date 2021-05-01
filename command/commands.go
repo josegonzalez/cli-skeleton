@@ -59,14 +59,24 @@ func CommandHelp(c Command) string {
 	helpText := `
 Usage: ` + appName + ` ` + c.Name() + ` ` + FlagString(c.FlagSet()) + ` ` + ArgumentAsString(c.Arguments()) + `
 
-  ` + c.Synopsis() + `
+  ` + c.Synopsis()
 
-General Options:
-  ` + GeneralOptionsUsage(c) + `
+	options := c.FlagSet().FlagUsages()
+	if options != "" {
+		helpText += `
 
-Example:
+Options:
 
-` + ExampleString(c.Examples())
+` + options
+	}
+
+	examples := ExampleString(c.Examples())
+	if examples != "" {
+		helpText += `
+Examples:
+
+` + examples
+	}
 
 	return strings.TrimSpace(helpText)
 }
