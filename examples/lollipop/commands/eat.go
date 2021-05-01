@@ -41,9 +41,10 @@ func (c *EatCommand) Examples() map[string]string {
 func (c *EatCommand) Arguments() []command.Argument {
 	args := []command.Argument{}
 	args = append(args, command.Argument{
-		Name:     "speed",
-		Optional: true,
-		Type:     command.ArgumentString,
+		Name:        "speed",
+		Description: "how quickly to eat the lollipop",
+		Optional:    true,
+		Type:        command.ArgumentString,
 	})
 	return args
 }

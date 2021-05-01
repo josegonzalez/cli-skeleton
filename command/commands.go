@@ -4,7 +4,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/mattn/go-colorable"
+	colorable "github.com/mattn/go-colorable"
 	"github.com/mitchellh/cli"
 	flag "github.com/spf13/pflag"
 )
@@ -59,14 +59,32 @@ func CommandHelp(c Command) string {
 	helpText := `
 Usage: ` + appName + ` ` + c.Name() + ` ` + FlagString(c.FlagSet()) + ` ` + ArgumentAsString(c.Arguments()) + `
 
-  ` + c.Synopsis() + `
+  ` + c.Synopsis()
 
-General Options:
-  ` + GeneralOptionsUsage(c) + `
+	options := c.FlagSet().FlagUsages()
+	if options != "" {
+		helpText += `
 
-Example:
+Options:
 
-` + ExampleString(c.Examples())
+` + options
+	}
 
-	return strings.TrimSpace(helpText)
+	arguments := ArgumentsString(c.Arguments())
+	if arguments != "" {
+		helpText += `
+Arguments:
+
+` + arguments
+	}
+
+	examples := ExampleString(c.Examples())
+	if examples != "" {
+		helpText += `
+Examples:
+
+` + examples
+	}
+
+	return strings.TrimSpace(helpText) + "\n"
 }

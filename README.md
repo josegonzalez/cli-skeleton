@@ -182,9 +182,10 @@ import "github.com/josegonzalez/cli-skeleton/command"
 func (c *EatCommand) Arguments() []command.Argument {
   args := []command.Argument{}
   args = append(args, command.Argument{
-    Name:     "speed",
-    Optional: true,
-    Type:     command.ArgumentString,
+    Name:        "speed",
+    Description: "how quickly to eat the lollipop",
+    Optional:    true,
+    Type:        command.ArgumentString,
   })
   return args
 }
@@ -194,17 +195,19 @@ The `Arguments()` function returns a slice of `Argument` structs. An `Argument` 
 
 ```go
 type Argument struct {
-  Name     string       // The name of the argument
-  Optional bool         // Whether the argument is optional or not
-  Type     ArgumentType // The type of the Argument. Valid types are: ArgumentString, ArgumentInt, ArgumentBool, ArgumentList
-  Value    interface{}  // The value of the interface
-  HasValue bool         // A boolean that contains whether the Argument has a value. Populated during argument parsing
+  Name        string       // The name of the argument
+  Description string       // An optional description of the argument
+  Optional    bool         // Whether the argument is optional or not
+  Type        ArgumentType // The type of the Argument. Valid types are: ArgumentString, ArgumentInt, ArgumentBool, ArgumentList
+  Value       interface{}  // The value of the interface
+  HasValue    bool         // A boolean that contains whether the Argument has a value. Populated during argument parsing
 }
 ```
 
 When specifying an argument in the `Arguments()` function, only the following attributes should be specified:
 
 - Name
+- Description
 - Optional
 - Type
 

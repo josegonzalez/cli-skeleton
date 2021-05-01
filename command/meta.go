@@ -47,7 +47,7 @@ func (m *Meta) FlagSet(n string, fs FlagSetFlags) *flag.FlagSet {
 	// FlagSetClient is used to enable the settings for specifying
 	// client connectivity options.
 	if fs&FlagSetClient != 0 {
-		f.BoolVar(&m.noColor, "no-color", false, "")
+		f.BoolVar(&m.noColor, "no-color", false, "disables colored command output. Alternatively, NO_COLOR may be set.")
 	}
 
 	f.SetOutput(&uiErrorWriter{ui: m.Ui})
@@ -75,23 +75,7 @@ func (m *Meta) Colorize() *colorstring.Colorize {
 }
 
 type GlobalFlagCommand interface {
-	GeneralFlagUsage() string
 	GlobalFlags(*flag.FlagSet)
-}
-
-// generalOptionsUsage returns the help string for the global options.
-func GeneralOptionsUsage(c Command) string {
-	helpText := `
-  --no-color
-    Disables colored command output. Alternatively, NO_COLOR may be
-    set.
-`
-
-	if g, ok := c.(GlobalFlagCommand); ok {
-		helpText += g.GeneralFlagUsage()
-	}
-
-	return strings.TrimSpace(helpText)
 }
 
 // funcVar is a type of flag that accepts a function that is the string given
