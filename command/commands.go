@@ -23,7 +23,7 @@ type CommandFunc func(meta Meta) map[string]cli.CommandFactory
 
 // Commands returns the mapping of CLI commands. The meta
 // parameter lets you set meta options for all commands.
-func Commands(metaPtr *Meta, agentUi cli.Ui, commands CommandFunc) map[string]cli.CommandFactory {
+func Commands(metaPtr *Meta, commands CommandFunc) map[string]cli.CommandFactory {
 	if metaPtr == nil {
 		metaPtr = new(Meta)
 	}
