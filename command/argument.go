@@ -207,6 +207,13 @@ func ParseArguments(args []string, arguments []Argument) (map[string]Argument, e
 		}
 	}
 
+	checkMaxArgs := true
+	if len(arguments) > 0 {
+		if arguments[len(arguments)-1].Type == ArgumentList {
+			checkMaxArgs = false
+		}
+	}
+
 	argumentWord := "argument"
 	if maxArgs != 1 {
 		argumentWord = "arguments"
@@ -228,7 +235,7 @@ func ParseArguments(args []string, arguments []Argument) (map[string]Argument, e
 		}
 	}
 
-	if len(args) < minArgs || len(args) > maxArgs {
+	if len(args) < minArgs || (len(args) > maxArgs && checkMaxArgs) {
 		argumentWord := "argument"
 		if len(args) != 1 {
 			argumentWord = "arguments"
