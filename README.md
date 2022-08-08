@@ -8,7 +8,6 @@ While [`mitchellh/cli`](https://github.com/mitchellh/cli) gives quite a bit of c
 
 See [Command Line Interface Guidelines](https://clig.dev/) for further reading on how to structure command line tools.
 
-
 ### Examples
 
 For examples on how to perform various tasks, see the following examples:
