@@ -1,6 +1,6 @@
 module github.com/josegonzalez/cli-skeleton
 
-go 1.15
+go 1.19
 
 require (
 	github.com/mattn/go-colorable v0.1.12
