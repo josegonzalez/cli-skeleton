@@ -1,0 +1,33 @@
+---
+name: CI
+
+# yamllint disable-line rule:truthy
+on:
+  pull_request:
+    branches:
+      - '*'
+  push:
+    branches:
+      - 'master'
+      - 'release'
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: true
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: debug home
+        run: |
+          echo "$PWD"
+          echo "$HOME"
+      - name: setup go
+        uses: actions/setup-go@v3
+        with:
+          go-version: '1.19.0'
+      - name: compile go examples
+        run: |
+          make build
