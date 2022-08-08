@@ -14,4 +14,6 @@ For examples on how to perform various tasks, see the following examples:
 
 - [`global`](examples/global): Shows how to implement "global" flags.
 - [`hello-world`](examples/hello-world): The hello-world example.
+- [`human-readable-logging`](examples/human-readable-logging): The hello-world example with nicer log output.
 - [`nil`](examples/nil): An example cli tool that does nothing. Useful for copying the `nil.go` command as a command template for your own cli tools.
+- [`zerolog-logging`](examples/zerolog-logging): The hello-world example with zerolog logger support.
