@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/mattn/go-colorable v0.1.13
-	github.com/mitchellh/cli v1.1.4
+	github.com/mitchellh/cli v1.1.5
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db
 	github.com/posener/complete v1.2.3
 	github.com/rs/zerolog v1.28.0
