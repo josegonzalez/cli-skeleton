@@ -7,7 +7,7 @@ require (
 	github.com/mitchellh/cli v1.1.4
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db
 	github.com/posener/complete v1.2.3
-	github.com/rs/zerolog v1.28.0
+	github.com/rs/zerolog v1.29.0
 	github.com/spf13/pflag v1.0.5
 	golang.org/x/crypto v0.0.0-20221012134737-56aed061732a
 )
