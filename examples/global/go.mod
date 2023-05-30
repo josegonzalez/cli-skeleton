@@ -29,9 +29,9 @@ require (
 	github.com/rs/zerolog v1.29.1 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
-	golang.org/x/crypto v0.8.0 // indirect
-	golang.org/x/sys v0.7.0 // indirect
-	golang.org/x/term v0.7.0 // indirect
+	golang.org/x/crypto v0.9.0 // indirect
+	golang.org/x/sys v0.8.0 // indirect
+	golang.org/x/term v0.8.0 // indirect
 )
 
 replace github.com/josegonzalez/cli-skeleton => ../../
