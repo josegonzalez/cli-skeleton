@@ -5,3 +5,23 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+  - package-ecosystem: "gomod"
+    directory: "/examples/global"
+    schedule:
+      interval: "daily"
+  - package-ecosystem: "gomod"
+    directory: "/examples/hello-world"
+    schedule:
+      interval: "daily"
+  - package-ecosystem: "gomod"
+    directory: "/examples/human-readable-logging"
+    schedule:
+      interval: "daily"
+  - package-ecosystem: "gomod"
+    directory: "/examples/nil"
+    schedule:
+      interval: "daily"
+  - package-ecosystem: "gomod"
+    directory: "/examples/zerolog-logging"
+    schedule:
+      interval: "daily"
