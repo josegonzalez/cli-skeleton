@@ -4,6 +4,10 @@ name: 'lint'
 # yamllint disable-line rule:truthy
 on: [push, pull_request]
 
+concurrency:
+  group: lint-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   markdown-lint:
     name: markdown-lint
