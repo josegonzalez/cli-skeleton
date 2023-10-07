@@ -25,3 +25,8 @@ updates:
     directory: "/examples/zerolog-logging"
     schedule:
       interval: "daily"
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
