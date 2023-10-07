@@ -23,7 +23,7 @@ jobs:
           echo "$PWD"
           echo "$HOME"
       - name: setup go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
           go-version-file: 'go.mod'
       - name: compile go examples
