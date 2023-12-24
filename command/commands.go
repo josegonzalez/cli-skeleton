@@ -23,7 +23,7 @@ type CommandFunc func(meta Meta) map[string]cli.CommandFactory
 
 // Commands returns the mapping of CLI commands. The meta
 // parameter lets you set meta options for all commands.
-func Commands(metaPtr *Meta, commands CommandFunc) map[string]cli.CommandFactory {
+func Commands(metaPtr *Meta, commandsFunc CommandFunc) map[string]cli.CommandFactory {
 	if metaPtr == nil {
 		metaPtr = new(Meta)
 	}
@@ -37,13 +37,7 @@ func Commands(metaPtr *Meta, commands CommandFunc) map[string]cli.CommandFactory
 		}
 	}
 
-	all := map[string]cli.CommandFactory{}
-
-	for k, v := range commands(meta) {
-		all[k] = v
-	}
-
-	return all
+	return commandsFunc(meta)
 }
 
 type Command interface {
