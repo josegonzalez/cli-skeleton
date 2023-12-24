@@ -1,6 +1,7 @@
 package command
 
 import (
+	"context"
 	"os"
 
 	colorable "github.com/mattn/go-colorable"
@@ -8,9 +9,9 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 )
 
-func SetupRun(appName string, version string, args []string) *Meta {
+func SetupRun(ctx context.Context, appName string, version string, args []string) *Meta {
 	// Parse flags into env vars for global use
-	args = SetupEnv(args)
+	SetupEnv(args)
 
 	// Create the meta object
 	metaPtr := new(Meta)
@@ -48,13 +49,13 @@ func SetupRun(appName string, version string, args []string) *Meta {
 
 	os.Setenv("CLI_APP_NAME", appName)
 	os.Setenv("CLI_VERSION", version)
-
+	metaPtr.Context = ctx
 	return metaPtr
 }
 
 // setupEnv parses args and may replace them and sets some env vars to known
 // values based on format options
-func SetupEnv(args []string) []string {
+func SetupEnv(args []string) {
 	noColor := false
 	for _, arg := range args {
 		// Check if color is set
@@ -67,6 +68,4 @@ func SetupEnv(args []string) []string {
 	if noColor {
 		os.Setenv(EnvCLINoColor, "true")
 	}
-
-	return args
 }

@@ -1,6 +1,7 @@
 package command
 
 import (
+	"context"
 	"os"
 	"strings"
 
@@ -19,11 +20,11 @@ type NamedCommand interface {
 	Name() string
 }
 
-type CommandFunc func(meta Meta) map[string]cli.CommandFactory
+type CommandFunc func(ctx context.Context, meta Meta) map[string]cli.CommandFactory
 
 // Commands returns the mapping of CLI commands. The meta
 // parameter lets you set meta options for all commands.
-func Commands(metaPtr *Meta, commandsFunc CommandFunc) map[string]cli.CommandFactory {
+func Commands(ctx context.Context, metaPtr *Meta, commandsFunc CommandFunc) map[string]cli.CommandFactory {
 	if metaPtr == nil {
 		metaPtr = new(Meta)
 	}
@@ -36,8 +37,9 @@ func Commands(metaPtr *Meta, commandsFunc CommandFunc) map[string]cli.CommandFac
 			ErrorWriter: colorable.NewColorableStderr(),
 		}
 	}
+	meta.Context = ctx
 
-	return commandsFunc(meta)
+	return commandsFunc(ctx, meta)
 }
 
 type Command interface {
