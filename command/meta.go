@@ -1,6 +1,7 @@
 package command
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -32,6 +33,8 @@ const (
 // every command inherits.
 type Meta struct {
 	Ui cli.Ui
+
+	Context context.Context
 
 	// Whether to not-colorize output
 	noColor bool
