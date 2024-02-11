@@ -365,7 +365,7 @@ func consoleDefaultFormatMessage(i interface{}) string {
 		return ""
 	}
 
-	return fmt.Sprintf("%-80s", i)
+	return fmt.Sprintf("%s", i)
 }
 
 func consoleDefaultFormatFieldName(noColor bool) zerolog.Formatter {
