@@ -1,6 +1,6 @@
 module global
 
-go 1.20
+go 1.23.0
 
 require (
 	github.com/josegonzalez/cli-skeleton v0.6.0
