@@ -9,7 +9,7 @@ require (
 	github.com/posener/complete v1.2.3
 	github.com/rs/zerolog v1.33.0
 	github.com/spf13/pflag v1.0.5
-	golang.org/x/crypto v0.30.0
+	golang.org/x/crypto v0.31.0
 )
 
 require (
