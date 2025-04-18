@@ -1,5 +1,5 @@
 ---
-name: 'lint'
+name: "lint"
 
 # yamllint disable-line rule:truthy
 on: [push, pull_request]
@@ -11,7 +11,7 @@ concurrency:
 jobs:
   markdown-lint:
     name: markdown-lint
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Clone
         uses: actions/checkout@v4
@@ -19,12 +19,12 @@ jobs:
         uses: avto-dev/markdown-lint@04d43ee9191307b50935a753da3b775ab695eceb
         # v1.5.0 => 04d43ee9191307b50935a753da3b775ab695eceb
         with:
-          config: '.github/linters/.markdown-lint.yml'
-          args: './README.md'
+          config: ".github/linters/.markdown-lint.yml"
+          args: "./README.md"
 
   shellcheck:
     name: shellcheck
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Clone
         uses: actions/checkout@v4
@@ -35,7 +35,7 @@ jobs:
           SHELLCHECK_OPTS: -s bash
   shfmt:
     name: shfmt
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Clone
         uses: actions/checkout@v4
@@ -51,7 +51,7 @@ jobs:
 
   yamllint:
     name: yamllint
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Clone
         uses: actions/checkout@v4
@@ -59,4 +59,4 @@ jobs:
         uses: ibiqlik/action-yamllint@2576378a8e339169678f9939646ee3ee325e845c
         # v3.0.2 => c19bd0523a9011c3a3960fe6640a0882b59af15d
         with:
-          config_file: '.github/linters/.yamllint.yml'
+          config_file: ".github/linters/.yamllint.yml"
