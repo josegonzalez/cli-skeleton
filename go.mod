@@ -8,7 +8,7 @@ require (
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db
 	github.com/posener/complete v1.2.3
 	github.com/rs/zerolog v1.34.0
-	github.com/spf13/pflag v1.0.6
+	github.com/spf13/pflag v1.0.7
 	golang.org/x/crypto v0.39.0
 )
 
