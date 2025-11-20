@@ -1,6 +1,6 @@
 module hello-world
 
-go 1.23.0
+go 1.24.0
 
 require (
 	github.com/josegonzalez/cli-skeleton v0.6.0
@@ -29,9 +29,9 @@ require (
 	github.com/rs/zerolog v1.34.0 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
-	golang.org/x/crypto v0.41.0 // indirect
-	golang.org/x/sys v0.35.0 // indirect
-	golang.org/x/term v0.34.0 // indirect
+	golang.org/x/crypto v0.45.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
+	golang.org/x/term v0.37.0 // indirect
 )
 
 replace github.com/josegonzalez/cli-skeleton => ../../
