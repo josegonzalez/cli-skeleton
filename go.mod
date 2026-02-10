@@ -9,7 +9,7 @@ require (
 	github.com/posener/complete v1.2.3
 	github.com/rs/zerolog v1.34.0
 	github.com/spf13/pflag v1.0.10
-	golang.org/x/crypto v0.47.0
+	golang.org/x/crypto v0.48.0
 )
 
 require (
@@ -29,7 +29,7 @@ require (
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
-	golang.org/x/sys v0.40.0 // indirect
-	golang.org/x/term v0.39.0 // indirect
+	golang.org/x/sys v0.41.0 // indirect
+	golang.org/x/term v0.40.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
