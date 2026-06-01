@@ -3,7 +3,7 @@ module github.com/josegonzalez/cli-skeleton
 go 1.25.0
 
 require (
-	github.com/mattn/go-colorable v0.1.14
+	github.com/mattn/go-colorable v0.1.15
 	github.com/mitchellh/cli v1.1.5
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db
 	github.com/posener/complete v1.2.3
