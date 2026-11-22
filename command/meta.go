@@ -189,6 +189,23 @@ func (m *Meta) meta() *Meta {
 	return m
 }
 
+// NewMeta returns a Meta for an app outside of Main, such as in tests. Its
+// UI writes to stdout and stderr.
+func NewMeta(ctx context.Context, appName string, version string) *Meta {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return &Meta{
+		Ui:            NewTerminalUi(appName, false),
+		Context:       ctx,
+		appName:       appName,
+		version:       version,
+		settings:      &Settings{},
+		registry:      &commandRegistry{},
+		progressState: &progressState{},
+	}
+}
+
 // AppName returns the name of the cli tool.
 func (m *Meta) AppName() string {
 	return m.appName

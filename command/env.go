@@ -39,3 +39,14 @@ func (m *Meta) EnvFlag(fs *flag.FlagSet, name string) {
 	}
 	m.envFlags[name] = env
 }
+
+// EnvFlags returns the flags bound to environment variables with EnvFlag,
+// mapping each flag name to its variable. Flags are bound when FlagSet is
+// called.
+func (m *Meta) EnvFlags() map[string]string {
+	flags := make(map[string]string, len(m.envFlags))
+	for name, env := range m.envFlags {
+		flags[name] = env
+	}
+	return flags
+}
