@@ -379,3 +379,39 @@ Available commands are:
 ```
 
 If there are any errors in compilation or output, please compare with the code in this directory.
+
+## Distributing
+
+clig.dev recommends distributing a cli tool as a single binary, and making it easy to uninstall. Go builds a single binary for each platform, and the included [`.goreleaser.yaml`](.goreleaser.yaml) packages one per operating system and architecture with [GoReleaser](https://goreleaser.com):
+
+```shell
+goreleaser release --snapshot --clean
+```
+
+### Installing
+
+Download the archive for your platform, extract it, and move the binary somewhere on your `PATH`:
+
+```shell
+tar -xzf hello-world_0.1.0_linux_amd64.tar.gz
+sudo mv hello-world /usr/local/bin/
+```
+
+Optionally, install shell completion and man pages for the current user:
+
+```shell
+hello-world completion --install
+hello-world docs --format man --install
+```
+
+### Uninstalling
+
+Remove the binary, along with the completion script and man pages if they were installed:
+
+```shell
+hello-world completion --uninstall
+rm -f ~/.local/share/man/man1/hello-world.1 ~/.local/share/man/man1/hello-world-*.1
+sudo rm /usr/local/bin/hello-world
+```
+
+Logs and other state are kept in `~/.local/state/hello-world`, and can be removed as well.
