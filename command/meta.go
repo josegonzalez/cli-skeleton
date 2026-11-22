@@ -123,6 +123,12 @@ type Meta struct {
 	// The defaults of --timeout and --port
 	defaultTimeout *time.Duration
 	defaultPort    int
+
+	// The flag groups the command added with FlagSet
+	flagBits FlagSetFlags
+
+	// The stdin of the run
+	stdin io.Reader
 }
 
 // writeOut writes text to stdout, bypassing any log formatting of the UI.
@@ -219,6 +225,7 @@ func (m *Meta) FlagSet(n string, fs FlagSetFlags) *flag.FlagSet {
 		addClientFlags(f, m.ensureSettings(), m.appName)
 	}
 	m.addStandardFlags(f, fs)
+	m.flagBits |= fs
 
 	f.SetOutput(&uiErrorWriter{ui: m.Ui})
 

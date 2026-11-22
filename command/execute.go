@@ -72,10 +72,15 @@ func Parse(c Command, args []string) (map[string]Argument, error) {
 	}
 
 	definitions := c.Arguments()
-	arguments, err := ParseArguments(flags.Args(), definitions)
+	positional, err := c.meta().promptMissingArguments(definitions, flags.Args())
+	if err != nil {
+		return nil, err
+	}
+
+	arguments, err := ParseArguments(positional, definitions)
 	if err != nil {
 		usageErr := &UsageError{Err: err}
-		if len(flags.Args()) == 0 && hasRequiredArgument(definitions) {
+		if len(positional) == 0 && hasRequiredArgument(definitions) {
 			usageErr.showUsage = true
 		}
 		return nil, usageErr

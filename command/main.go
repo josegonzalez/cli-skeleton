@@ -155,7 +155,9 @@ func Main(ctx context.Context, appName string, version string, args []string, co
 		ErrorColor:  colorEnabled(IsTerminal(st.errFile), appName, settings.NoColor),
 	}
 
-	var ui cli.Ui = newSettingsUi(base, settings, stdin)
+	inner := newSettingsUi(base, settings, stdin)
+	inner.stderr = stderr
+	var ui cli.Ui = inner
 	if o.ui != nil {
 		ui = o.ui(ui)
 		if _, ok := ui.(settingsProvider); !ok {
@@ -177,6 +179,7 @@ func Main(ctx context.Context, appName string, version string, args []string, co
 	interrupts := newInterruptHandler(cancel, base.Warn, gracePeriod, exit)
 	interrupts.start()
 	defer interrupts.stop()
+	inner.interrupts = interrupts
 
 	meta := &Meta{
 		Ui:         ui,
@@ -196,6 +199,7 @@ func Main(ctx context.Context, appName string, version string, args []string, co
 
 		defaultTimeout: o.defaultTimeout,
 		defaultPort:    o.defaultPort,
+		stdin:          stdin,
 	}
 
 	debugLog, err := openDebugLog(appName)
@@ -216,8 +220,9 @@ func Main(ctx context.Context, appName string, version string, args []string, co
 		return ExitCodeUsage
 	}
 
-	if word, candidates := unknownCommand(args, commands); word != "" {
-		return meta.reportUnknownCommand(word, candidates)
+	args, code, ok := meta.resolveUnknownCommand(args, commands)
+	if !ok {
+		return code
 	}
 	addParentCommands(meta, commands)
 
@@ -273,6 +278,56 @@ func addParentCommands(meta *Meta, commands map[string]cli.CommandFactory) {
 			return &parentCommand{Meta: *meta, name: parent, commands: commands}, nil
 		}
 	}
+}
+
+// resolveUnknownCommand reports unknown commands. When there is a single
+// close match and the user can be prompted, it asks whether to run it
+// instead, and never runs it without a yes. It returns the args to run, or
+// false with the exit code when the command is unknown.
+func (m *Meta) resolveUnknownCommand(args []string, commands map[string]cli.CommandFactory) ([]string, int, bool) {
+	for attempt := 0; attempt < len(args); attempt++ {
+		word, candidates := unknownCommand(args, commands)
+		if word == "" {
+			return args, ExitCodeOK, true
+		}
+
+		suggestions := Suggest(word, candidates)
+		if len(suggestions) != 1 || !m.CanPrompt() {
+			return args, m.reportUnknownCommand(word, candidates), false
+		}
+
+		m.Ui.Error(fmt.Sprintf("Unknown command %q for %q.", word, m.appName))
+		answer, err := m.Ui.Ask(fmt.Sprintf("Did you mean %q? [y/N]", suggestions[0]))
+		if err != nil || !isYes(answer) {
+			m.Ui.Info(fmt.Sprintf("Run '%s --help' for a list of commands.", m.appName))
+			return args, ExitCodeUnknownCommand, false
+		}
+
+		args = replaceFirst(args, word, suggestions[0])
+	}
+	return args, ExitCodeOK, true
+}
+
+// isYes reports whether answer is y or yes.
+func isYes(answer string) bool {
+	switch strings.ToLower(strings.TrimSpace(answer)) {
+	case "y", "yes":
+		return true
+	}
+	return false
+}
+
+// replaceFirst returns a copy of args with the first occurrence of old
+// replaced by replacement.
+func replaceFirst(args []string, old string, replacement string) []string {
+	result := append([]string{}, args...)
+	for i, arg := range result {
+		if arg == old {
+			result[i] = replacement
+			break
+		}
+	}
+	return result
 }
 
 // reportUnknownCommand prints an unknown command error with suggestions.

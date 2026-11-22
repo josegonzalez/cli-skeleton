@@ -67,11 +67,16 @@ type mainResult struct {
 
 func runTestMain(t *testing.T, args []string, commands map[string]*testCommand, opts ...Option) mainResult {
 	t.Helper()
+	return runTestMainWithInput(t, "", args, commands, opts...)
+}
+
+func runTestMainWithInput(t *testing.T, input string, args []string, commands map[string]*testCommand, opts ...Option) mainResult {
+	t.Helper()
 	clearColorEnv(t)
 
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
-	opts = append(opts, withStreams(strings.NewReader(""), stdout, stderr))
+	opts = append(opts, withStreams(strings.NewReader(input), stdout, stderr))
 
 	commandsFunc := func(ctx context.Context, meta Meta) map[string]cli.CommandFactory {
 		factories := map[string]cli.CommandFactory{}

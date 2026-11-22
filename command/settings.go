@@ -2,6 +2,7 @@ package command
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"strconv"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/mitchellh/cli"
 	flag "github.com/spf13/pflag"
+	"golang.org/x/term"
 )
 
 // Settings holds the framework-wide settings shared by every command.
@@ -216,8 +218,10 @@ func settingsOf(ui cli.Ui) *Settings {
 type settingsUi struct {
 	cli.Ui
 
-	settings *Settings
-	stdin    io.Reader
+	settings   *Settings
+	stdin      io.Reader
+	stderr     io.Writer
+	interrupts *interruptHandler
 }
 
 func newSettingsUi(ui cli.Ui, settings *Settings, stdin io.Reader) *settingsUi {
@@ -249,6 +253,7 @@ func (u *settingsUi) Ask(query string) (string, error) {
 	if err := u.canPrompt(); err != nil {
 		return "", err
 	}
+	defer u.whilePrompting()()
 	return u.Ui.Ask(query)
 }
 
@@ -256,7 +261,46 @@ func (u *settingsUi) AskSecret(query string) (string, error) {
 	if err := u.canPrompt(); err != nil {
 		return "", err
 	}
+	defer u.whilePrompting()()
 	return u.Ui.AskSecret(query)
+}
+
+// whilePrompting makes an interrupt during a prompt exit right away, after
+// restoring the terminal, since there is nothing to clean up while waiting
+// for input. It returns a function that ends the prompt.
+func (u *settingsUi) whilePrompting() func() {
+	if u.interrupts == nil {
+		return func() {}
+	}
+
+	restore := saveTerminalState(u.stdin)
+	return u.interrupts.register(interruptHook{
+		immediate: true,
+		fn: func() {
+			restore()
+			if u.stderr != nil {
+				fmt.Fprintln(u.stderr)
+			}
+		},
+	})
+}
+
+// saveTerminalState captures the state of stdin when it is a terminal, and
+// returns a function that restores it. Prompts for secrets turn off echo,
+// which must be turned back on when the process exits mid-prompt.
+func saveTerminalState(stdin io.Reader) func() {
+	f, ok := stdin.(*os.File)
+	if !ok || !IsTerminal(f) {
+		return func() {}
+	}
+
+	state, err := term.GetState(int(f.Fd()))
+	if err != nil {
+		return func() {}
+	}
+	return func() {
+		_ = term.Restore(int(f.Fd()), state)
+	}
 }
 
 // canPrompt returns a NoInputError when the user cannot be prompted.
@@ -270,8 +314,7 @@ func checkPrompt(settings *Settings, stdin io.Reader) error {
 		return &NoInputError{Reason: "--no-input was passed"}
 	}
 
-	f, ok := stdin.(*os.File)
-	if !ok || !IsTerminal(f) {
+	if !isTerminalReader(stdin) {
 		return &NoInputError{Reason: "stdin is not a terminal"}
 	}
 
