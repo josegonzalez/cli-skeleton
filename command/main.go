@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"time"
 
 	colorable "github.com/mattn/go-colorable"
 	"github.com/mitchellh/cli"
@@ -39,6 +40,8 @@ type Option func(*mainOptions)
 type mainOptions struct {
 	ui          func(cli.Ui) cli.Ui
 	globalFlags func(*flag.FlagSet)
+	gracePeriod *time.Duration
+	exit        func(int)
 
 	stdin  io.Reader
 	stdout io.Writer
@@ -63,6 +66,13 @@ func WithGlobalFlags(fn func(*flag.FlagSet)) Option {
 	}
 }
 
+// withExit replaces os.Exit for forced exits. It is used by tests.
+func withExit(fn func(int)) Option {
+	return func(o *mainOptions) {
+		o.exit = fn
+	}
+}
+
 // withStreams replaces stdin, stdout and stderr. It is used by tests.
 func withStreams(stdin io.Reader, stdout io.Writer, stderr io.Writer) Option {
 	return func(o *mainOptions) {
@@ -81,6 +91,10 @@ func withStreams(stdin io.Reader, stdout io.Writer, stderr io.Writer) Option {
 // It resolves the framework settings from the environment and args, builds
 // the UI, moves framework and app-global flags placed before the subcommand
 // to after it, and runs the matching command.
+//
+// The first SIGINT or SIGTERM prints a message and cancels Meta.Context, so
+// commands should stop when the context is done. A second signal, or the
+// grace period running out, exits with ExitCodeInterrupt.
 func Main(ctx context.Context, appName string, version string, args []string, commandsFunc CommandFunc, opts ...Option) int {
 	o := &mainOptions{}
 	for _, opt := range opts {
@@ -108,12 +122,28 @@ func Main(ctx context.Context, appName string, version string, args []string, co
 		}
 	}
 
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	gracePeriod := DefaultGracePeriod
+	if o.gracePeriod != nil {
+		gracePeriod = *o.gracePeriod
+	}
+	exit := o.exit
+	if exit == nil {
+		exit = os.Exit
+	}
+	interrupts := newInterruptHandler(cancel, base.Warn, gracePeriod, exit)
+	interrupts.start()
+	defer interrupts.stop()
+
 	meta := &Meta{
-		Ui:       ui,
-		Context:  ctx,
-		appName:  appName,
-		version:  version,
-		settings: settings,
+		Ui:         ui,
+		Context:    ctx,
+		appName:    appName,
+		version:    version,
+		settings:   settings,
+		interrupts: interrupts,
 	}
 
 	commands := Commands(ctx, meta, commandsFunc)

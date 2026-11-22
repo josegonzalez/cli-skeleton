@@ -48,6 +48,9 @@ type Meta struct {
 
 	// The settings shared by every command in the run
 	settings *Settings
+
+	// The interrupt handler of the run
+	interrupts *interruptHandler
 }
 
 // AppName returns the name of the cli tool.
