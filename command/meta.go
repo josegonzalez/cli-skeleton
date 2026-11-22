@@ -100,8 +100,9 @@ type Meta struct {
 	// Where help and other direct output is written
 	stdout io.Writer
 
-	// The process stdout, used to detect the terminal width
+	// The process stdout and stderr, used to detect terminals
 	stdoutFile *os.File
+	stderrFile *os.File
 
 	// The app description and examples shown in the top-level help
 	description string

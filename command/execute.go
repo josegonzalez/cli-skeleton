@@ -148,7 +148,7 @@ func (m *Meta) reportError(c Command, err error) int {
 	}
 
 	if errors.Is(err, ErrHelp) && c != nil {
-		m.writeOut(helpText(c))
+		m.writeHelp(helpText(c))
 		return ExitCodeOK
 	}
 

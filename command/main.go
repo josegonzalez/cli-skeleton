@@ -192,6 +192,7 @@ func Main(ctx context.Context, appName string, version string, args []string, co
 		stderr:      stderr,
 		stdout:      stdout,
 		stdoutFile:  st.outFile,
+		stderrFile:  st.errFile,
 		description: o.description,
 		examples:    o.examples,
 		docsURL:     o.docsURL,
@@ -220,12 +221,14 @@ func Main(ctx context.Context, appName string, version string, args []string, co
 		return ExitCodeUsage
 	}
 
+	var code int
 	args, code, ok := meta.resolveUnknownCommand(args, commands)
 	if !ok {
 		return code
 	}
 	addParentCommands(meta, commands)
 
+	help := &helpWriter{meta: meta}
 	c := &cli.CLI{
 		Name:           appName,
 		Version:        version,
@@ -241,11 +244,13 @@ func Main(ctx context.Context, appName string, version string, args []string, co
 			}
 			return strings.TrimRight(meta.topLevelHelp(visible, false), "\n")
 		},
-		HelpWriter:  stdout,
+		HelpWriter:  help,
 		ErrorWriter: stderr,
 	}
 
-	return runCLI(c, meta)
+	code = runCLI(c, meta)
+	help.flush()
+	return code
 }
 
 // addBuiltinCommands registers the commands provided by the framework,

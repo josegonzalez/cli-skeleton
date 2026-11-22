@@ -1,7 +1,6 @@
 package command
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/posener/complete"
@@ -55,12 +54,7 @@ func (c *VersionCommand) Run(args []string) int {
 	return Execute(c, args, func(arguments map[string]Argument) error {
 		info := c.BuildInfo()
 		if c.IsJSON() {
-			data, err := json.MarshalIndent(info, "", "  ")
-			if err != nil {
-				return err
-			}
-			c.Ui.Output(string(data))
-			return nil
+			return c.OutputJSON(info)
 		}
 
 		c.Ui.Output(c.Version())
