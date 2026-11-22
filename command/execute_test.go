@@ -30,6 +30,7 @@ func newExecuteCommand(settings *Settings) (*testCommand, *bytes.Buffer, *bytes.
 			version:  "1.2.3",
 			settings: settings,
 			stderr:   stderr,
+			stdout:   stdout,
 		},
 	}
 	return c, stdout, stderr

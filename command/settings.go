@@ -152,14 +152,14 @@ func takesValue(f *flag.Flag) bool {
 	return f.NoOptDefVal == ""
 }
 
-// framework flag help text
-const (
-	usageNoColor = "disable colored output; NO_COLOR or <APP>_NO_COLOR may also be set"
-	usageNoInput = "never prompt for input; fail instead when input is required"
-	usageQuiet   = "only print essential output"
-	usageDebug   = "print debugging output; DEBUG or <APP>_DEBUG may also be set"
-	usageNoPager = "do not page long output"
-)
+// appEnvName returns the app-specific env var name for help text, or a
+// placeholder when the app name is unknown.
+func appEnvName(appName string, suffix string) string {
+	if name := AppEnv(appName, suffix); name != "" {
+		return name
+	}
+	return "<APP>_" + suffix
+}
 
 // bindBool binds a bool flag to p without resetting the current value of p,
 // so values resolved before parsing survive the flag definition. The flag
@@ -171,12 +171,12 @@ func bindBool(f *flag.FlagSet, p *bool, name string, shorthand string, usage str
 }
 
 // addClientFlags adds the framework-global flags backed by s to f.
-func addClientFlags(f *flag.FlagSet, s *Settings) {
-	bindBool(f, &s.NoColor, "no-color", "", usageNoColor)
-	bindBool(f, &s.NoInput, "no-input", "", usageNoInput)
-	bindBool(f, &s.Quiet, "quiet", "q", usageQuiet)
-	bindBool(f, &s.Debug, "debug", "d", usageDebug)
-	bindBool(f, &s.NoPager, "no-pager", "", usageNoPager)
+func addClientFlags(f *flag.FlagSet, s *Settings, appName string) {
+	bindBool(f, &s.NoColor, "no-color", "", "disable colored output; NO_COLOR or "+appEnvName(appName, "NO_COLOR")+" may also be set")
+	bindBool(f, &s.NoInput, "no-input", "", "never prompt for input; fail instead when input is required")
+	bindBool(f, &s.Quiet, "quiet", "q", "only print essential output")
+	bindBool(f, &s.Debug, "debug", "d", "print debugging output; DEBUG or "+appEnvName(appName, "DEBUG")+" may also be set")
+	bindBool(f, &s.NoPager, "no-pager", "", "do not page long output")
 }
 
 // ErrNoInput is returned when a prompt is needed but input is disabled.

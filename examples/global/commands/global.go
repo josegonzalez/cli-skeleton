@@ -26,10 +26,10 @@ func (c *GlobalCommand) Help() string {
 	return command.CommandHelp(c)
 }
 
-func (c *GlobalCommand) Examples() map[string]string {
+func (c *GlobalCommand) Examples() []command.Example {
 	appName := c.AppName()
-	return map[string]string{
-		"Prints the values of the global flags": fmt.Sprintf("%s %s", appName, c.Name()),
+	return []command.Example{
+		{Description: "Prints the values of the global flags", Command: fmt.Sprintf("%s %s", appName, c.Name())},
 	}
 }
 

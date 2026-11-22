@@ -2,7 +2,6 @@ package command
 
 import (
 	"context"
-	"strings"
 
 	"github.com/mitchellh/cli"
 	flag "github.com/spf13/pflag"
@@ -49,39 +48,5 @@ type Command interface {
 	FlagSet() *flag.FlagSet
 	Arguments() []Argument
 	Synopsis() string
-	Examples() map[string]string
-}
-
-func CommandHelp(c Command) string {
-	helpText := `
-Usage: ` + c.AppName() + ` ` + c.Name() + ` ` + FlagString(c.FlagSet()) + ` ` + ArgumentAsString(c.Arguments()) + `
-
-  ` + c.Synopsis()
-
-	options := c.FlagSet().FlagUsages()
-	if options != "" {
-		helpText += `
-
-Options:
-
-` + options
-	}
-
-	arguments := ArgumentsString(c.Arguments())
-	if arguments != "" {
-		helpText += `
-Arguments:
-
-` + arguments
-	}
-
-	examples := ExampleString(c.Examples())
-	if examples != "" {
-		helpText += `
-Examples:
-
-` + examples
-	}
-
-	return strings.TrimSpace(helpText) + "\n"
+	Examples() []Example
 }

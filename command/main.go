@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -43,6 +44,10 @@ type mainOptions struct {
 	gracePeriod *time.Duration
 	exit        func(int)
 	issueURL    string
+	description string
+	examples    []Example
+	docsURL     string
+	supportURL  string
 
 	stdin  io.Reader
 	stdout io.Writer
@@ -64,6 +69,38 @@ func WithUi(fn func(cli.Ui) cli.Ui) Option {
 func WithGlobalFlags(fn func(*flag.FlagSet)) Option {
 	return func(o *mainOptions) {
 		o.globalFlags = fn
+	}
+}
+
+// WithDescription sets the description shown at the top of the app help.
+func WithDescription(description string) Option {
+	return func(o *mainOptions) {
+		o.description = description
+	}
+}
+
+// WithExamples sets the examples shown in the app help. The first two are
+// also shown when the app is run without arguments.
+func WithExamples(examples ...Example) Option {
+	return func(o *mainOptions) {
+		o.examples = examples
+	}
+}
+
+// WithDocsURL sets the base URL of the web docs. App help links to it, and
+// command help links to `<docsURL>/<command-path>`, such as
+// `<docsURL>/lollipop-eat` for `lollipop eat`.
+func WithDocsURL(docsURL string) Option {
+	return func(o *mainOptions) {
+		o.docsURL = docsURL
+	}
+}
+
+// WithSupportURL sets where users can get help or report issues. It is shown
+// at the bottom of help output.
+func WithSupportURL(supportURL string) Option {
+	return func(o *mainOptions) {
+		o.supportURL = supportURL
 	}
 }
 
@@ -145,8 +182,14 @@ func Main(ctx context.Context, appName string, version string, args []string, co
 		version:    version,
 		settings:   settings,
 		interrupts: interrupts,
-		issueURL:   o.issueURL,
-		stderr:     stderr,
+		issueURL:    o.issueURL,
+		stderr:      stderr,
+		stdout:      stdout,
+		stdoutFile:  st.outFile,
+		description: o.description,
+		examples:    o.examples,
+		docsURL:     o.docsURL,
+		supportURL:  o.supportURL,
 	}
 
 	debugLog, err := openDebugLog(appName)
@@ -159,17 +202,81 @@ func Main(ctx context.Context, appName string, version string, args []string, co
 	}
 
 	commands := Commands(ctx, meta, commandsFunc)
+	addBuiltinCommands(meta, commands)
+
+	args = rewriteHelpArgs(moveGlobalFlags(args, knownFlags, commands), commands)
+	if len(args) == 0 {
+		meta.writeErr(meta.topLevelHelp(meta.visibleCommands(commands), true))
+		return ExitCodeUsage
+	}
+
+	if word, candidates := unknownCommand(args, commands); word != "" {
+		return meta.reportUnknownCommand(word, candidates)
+	}
+	addParentCommands(meta, commands)
 
 	c := &cli.CLI{
-		Name:        appName,
-		Version:     version,
-		Args:        moveGlobalFlags(args, knownFlags, commands),
-		Commands:    commands,
+		Name:           appName,
+		Version:        version,
+		Args:           args,
+		Commands:       commands,
+		HiddenCommands: meta.hiddenCommands,
+		HelpFunc: func(commands map[string]cli.CommandFactory) string {
+			visible := map[string]cli.CommandFactory{}
+			for name, factory := range commands {
+				if !meta.isHidden(name) {
+					visible[name] = factory
+				}
+			}
+			return strings.TrimRight(meta.topLevelHelp(visible, false), "\n")
+		},
 		HelpWriter:  stdout,
 		ErrorWriter: stderr,
 	}
 
 	return runCLI(c, meta)
+}
+
+// addBuiltinCommands registers the commands provided by the framework,
+// unless the app defines commands with the same names.
+func addBuiltinCommands(meta *Meta, commands map[string]cli.CommandFactory) {
+	if _, ok := commands["examples"]; !ok {
+		commands["examples"] = func() (cli.Command, error) {
+			return &examplesCommand{Meta: *meta, commands: commands}, nil
+		}
+	}
+}
+
+// addParentCommands registers a parent command for nested commands without
+// one, such as `lollipop` for `lollipop eat`.
+func addParentCommands(meta *Meta, commands map[string]cli.CommandFactory) {
+	var parents []string
+	for name := range commands {
+		words := strings.Fields(name)
+		for i := 1; i < len(words); i++ {
+			parent := strings.Join(words[:i], " ")
+			if _, ok := commands[parent]; !ok {
+				parents = append(parents, parent)
+			}
+		}
+	}
+
+	for _, parent := range parents {
+		parent := parent
+		commands[parent] = func() (cli.Command, error) {
+			return &parentCommand{Meta: *meta, name: parent, commands: commands}, nil
+		}
+	}
+}
+
+// reportUnknownCommand prints an unknown command error with suggestions.
+func (m *Meta) reportUnknownCommand(word string, candidates []string) int {
+	m.Ui.Error(fmt.Sprintf("Unknown command %q for %q.", word, m.appName))
+	if question := didYouMean(Suggest(word, candidates), strconv.Quote); question != "" {
+		m.Ui.Info(question)
+	}
+	m.Ui.Info(fmt.Sprintf("Run '%s --help' for a list of commands.", m.appName))
+	return ExitCodeUnknownCommand
 }
 
 // runCLI runs c, reporting errors and panics that escape the command.
@@ -222,7 +329,7 @@ func (o *mainOptions) streams() runStreams {
 // is never parsed.
 func globalFlagSet(globalFlags func(*flag.FlagSet)) *flag.FlagSet {
 	f := flag.NewFlagSet("global", flag.ContinueOnError)
-	addClientFlags(f, &Settings{})
+	addClientFlags(f, &Settings{}, "")
 	if globalFlags != nil {
 		globalFlags(f)
 	}

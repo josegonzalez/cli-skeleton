@@ -19,15 +19,16 @@ type testCommand struct {
 	flags   FlagSetFlags
 	extra   func(*flag.FlagSet)
 	args    []Argument
-	run     func(c *testCommand, arguments map[string]Argument) int
-	flagSet *flag.FlagSet
+	run      func(c *testCommand, arguments map[string]Argument) int
+	flagSet  *flag.FlagSet
+	examples []Example
 }
 
 func (c *testCommand) Name() string                { return c.name }
 func (c *testCommand) Synopsis() string            { return "the " + c.name + " command" }
 func (c *testCommand) Help() string                { return CommandHelp(c) }
 func (c *testCommand) Arguments() []Argument       { return append([]Argument{}, c.args...) }
-func (c *testCommand) Examples() map[string]string { return map[string]string{} }
+func (c *testCommand) Examples() []Example         { return c.examples }
 
 func (c *testCommand) FlagSet() *flag.FlagSet {
 	f := c.Meta.FlagSet(c.name, c.flags)
@@ -179,6 +180,16 @@ func TestMainHelpGoesToStdout(t *testing.T) {
 	if got.code != 0 || !strings.Contains(got.stdout, "eat") {
 		t.Errorf("top-level help: code = %d, stdout = %q", got.code, got.stdout)
 	}
+
+	got = runTestMain(t, []string{"help"}, commands)
+	if got.code != 0 || !strings.Contains(got.stdout, "COMMANDS") {
+		t.Errorf("help: code = %d, stdout = %q", got.code, got.stdout)
+	}
+
+	got = runTestMain(t, []string{"help", "eat"}, commands)
+	if got.code != 0 || !strings.Contains(got.stdout, "test-app eat") || strings.Contains(got.stdout, "COMMANDS") {
+		t.Errorf("help eat: code = %d, stdout = %q", got.code, got.stdout)
+	}
 }
 
 func TestMainVersion(t *testing.T) {
@@ -197,8 +208,16 @@ func TestMainUnknownCommand(t *testing.T) {
 	if got.code != ExitCodeUnknownCommand {
 		t.Errorf("exit code = %d", got.code)
 	}
-	if got.stdout != "" || got.stderr == "" {
+	if got.stdout != "" || !strings.Contains(got.stderr, `Unknown command "drink"`) {
 		t.Errorf("stdout = %q, stderr = %q", got.stdout, got.stderr)
+	}
+	if strings.Contains(got.stderr, "Did you mean") {
+		t.Errorf("no suggestion expected: %q", got.stderr)
+	}
+
+	got = runTestMain(t, []string{"eatt"}, commands)
+	if got.code != ExitCodeUnknownCommand || !strings.Contains(got.stderr, `Did you mean "eat"?`) {
+		t.Errorf("code = %d, stderr = %q", got.code, got.stderr)
 	}
 }
 

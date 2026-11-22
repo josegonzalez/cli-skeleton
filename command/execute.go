@@ -64,15 +64,54 @@ func Parse(c Command, args []string) (map[string]Argument, error) {
 		if errors.Is(err, flag.ErrHelp) {
 			return nil, ErrHelp
 		}
-		return nil, &UsageError{Err: err}
+		return nil, &UsageError{Err: err, Hint: unknownFlagHint(c, flags, err)}
 	}
 
-	arguments, err := ParseArguments(flags.Args(), c.Arguments())
+	definitions := c.Arguments()
+	arguments, err := ParseArguments(flags.Args(), definitions)
 	if err != nil {
-		return nil, &UsageError{Err: err}
+		usageErr := &UsageError{Err: err}
+		if len(flags.Args()) == 0 && hasRequiredArgument(definitions) {
+			usageErr.showUsage = true
+		}
+		return nil, usageErr
 	}
 
 	return arguments, nil
+}
+
+// hasRequiredArgument reports whether any argument is required.
+func hasRequiredArgument(arguments []Argument) bool {
+	for _, argument := range arguments {
+		if !argument.Optional {
+			return true
+		}
+	}
+	return false
+}
+
+// unknownFlagHint suggests the closest flag when err is about an unknown
+// long flag, followed by the usual pointer to the help.
+func unknownFlagHint(c Command, flags *flag.FlagSet, err error) string {
+	var notExist *flag.NotExistError
+	if !errors.As(err, &notExist) || notExist.GetSpecifiedName() == "" {
+		return ""
+	}
+
+	var names []string
+	flags.VisitAll(func(f *flag.Flag) {
+		if !f.Hidden {
+			names = append(names, f.Name)
+		}
+	})
+
+	question := didYouMean(Suggest(notExist.GetSpecifiedName(), names), func(name string) string {
+		return "--" + name
+	})
+	if question == "" {
+		return ""
+	}
+	return question + "\n" + CommandErrorText(c)
 }
 
 // panicError converts a recovered panic into an InternalError.
@@ -100,7 +139,7 @@ func (m *Meta) reportError(c Command, err error) int {
 	}
 
 	if errors.Is(err, ErrHelp) && c != nil {
-		m.Ui.Output(helpText(c))
+		m.writeOut(helpText(c))
 		return ExitCodeOK
 	}
 
@@ -140,6 +179,11 @@ func (m *Meta) reportError(c Command, err error) int {
 
 func (m *Meta) reportUsageError(c Command, err *UsageError) int {
 	m.Ui.Error(err.Error())
+
+	if err.showUsage && c != nil {
+		m.writeErr("\n" + conciseCommandHelp(c))
+		return ExitCodeUsage
+	}
 
 	hint := err.Hint
 	if hint == "" && c != nil {

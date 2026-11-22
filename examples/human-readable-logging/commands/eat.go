@@ -27,13 +27,13 @@ func (c *EatCommand) Help() string {
 	return command.CommandHelp(c)
 }
 
-func (c *EatCommand) Examples() map[string]string {
+func (c *EatCommand) Examples() []command.Example {
 	appName := c.AppName()
-	return map[string]string{
-		"Eats one lollipop quickly":  fmt.Sprintf("%s %s quickly", appName, c.Name()),
-		"Eats one lollipop slowly":   fmt.Sprintf("%s %s slowly", appName, c.Name()),
-		"Eats two lollipops quickly": fmt.Sprintf("%s %s --count 2 quickly", appName, c.Name()),
-		"Eats three red lollipops":   fmt.Sprintf("%s %s --count 3 --color red", appName, c.Name()),
+	return []command.Example{
+		{Description: "Eats one lollipop quickly", Command: fmt.Sprintf("%s %s quickly", appName, c.Name())},
+		{Description: "Eats one lollipop slowly", Command: fmt.Sprintf("%s %s slowly", appName, c.Name())},
+		{Description: "Eats two lollipops quickly", Command: fmt.Sprintf("%s %s --count 2 quickly", appName, c.Name())},
+		{Description: "Eats three red lollipops", Command: fmt.Sprintf("%s %s --count 3 --color red", appName, c.Name())},
 	}
 }
 

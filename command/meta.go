@@ -61,6 +61,51 @@ type Meta struct {
 
 	// The file named by <APP>_DEBUG_LOG, when set
 	debugLog io.Writer
+
+	// Where help and other direct output is written
+	stdout io.Writer
+
+	// The process stdout, used to detect the terminal width
+	stdoutFile *os.File
+
+	// The app description and examples shown in the top-level help
+	description string
+	examples    []Example
+
+	// Links shown at the bottom of help output
+	docsURL    string
+	supportURL string
+
+	// Commands hidden from the command list
+	hiddenCommands []string
+
+	// Explicit aliases, mapping each alias to its command
+	aliases map[string]string
+}
+
+// writeOut writes text to stdout, bypassing any log formatting of the UI.
+func (m *Meta) writeOut(text string) {
+	w := m.stdout
+	if w == nil {
+		w = os.Stdout
+	}
+	fmt.Fprint(w, ensureNewline(text))
+}
+
+// writeErr writes text to stderr, bypassing any log formatting of the UI.
+func (m *Meta) writeErr(text string) {
+	w := m.stderr
+	if w == nil {
+		w = os.Stderr
+	}
+	fmt.Fprint(w, ensureNewline(text))
+}
+
+func ensureNewline(text string) string {
+	if strings.HasSuffix(text, "\n") {
+		return text
+	}
+	return text + "\n"
 }
 
 // meta returns the Meta. Commands satisfy the Command interface by
@@ -129,7 +174,7 @@ func (m *Meta) FlagSet(n string, fs FlagSetFlags) *flag.FlagSet {
 	f := flag.NewFlagSet(n, flag.ContinueOnError)
 
 	if fs&FlagSetClient != 0 {
-		addClientFlags(f, m.ensureSettings())
+		addClientFlags(f, m.ensureSettings(), m.appName)
 	}
 
 	f.SetOutput(&uiErrorWriter{ui: m.Ui})
@@ -173,27 +218,3 @@ type funcVar func(s string) error
 func (f funcVar) Set(s string) error { return f(s) }
 func (f funcVar) String() string     { return "" }
 func (f funcVar) IsBoolFlag() bool   { return false }
-
-func ExampleString(examples map[string]string) string {
-	exampleString := []string{}
-
-	for name, example := range examples {
-		exampleString = append(exampleString, "  "+name+"\n    $ "+example)
-	}
-
-	return strings.Join(exampleString, "\n\n")
-}
-
-func FlagString(flags *flag.FlagSet) string {
-	flagString := []string{}
-
-	flags.VisitAll(func(f *flag.Flag) {
-		if f.DefValue == "true" || f.DefValue == "false" {
-			flagString = append(flagString, fmt.Sprintf("--%s", f.Name))
-			return
-		}
-
-		flagString = append(flagString, fmt.Sprintf("--%s <%[1]s-value>", f.Name))
-	})
-	return strings.Join(flagString, " ")
-}

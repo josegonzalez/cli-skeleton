@@ -31,9 +31,9 @@ func (c *VersionCommand) AutocompleteArgs() complete.Predictor {
 	return complete.PredictNothing
 }
 
-func (c *VersionCommand) Examples() map[string]string {
-	return map[string]string{
-		"Return the version of the binary": fmt.Sprintf("%s %s", c.AppName(), c.Name()),
+func (c *VersionCommand) Examples() []Example {
+	return []Example{
+		{Description: "Return the version of the binary", Command: fmt.Sprintf("%s %s", c.AppName(), c.Name())},
 	}
 }
 

@@ -59,6 +59,9 @@ type UsageError struct {
 
 	// Hint replaces the default pointer to the command help.
 	Hint string
+
+	// showUsage prints the concise command help instead of the hint.
+	showUsage bool
 }
 
 // NewUsageError returns a UsageError with a formatted message.

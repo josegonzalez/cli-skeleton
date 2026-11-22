@@ -24,10 +24,10 @@ func (c *NilCommand) Help() string {
 	return command.CommandHelp(c)
 }
 
-func (c *NilCommand) Examples() map[string]string {
+func (c *NilCommand) Examples() []command.Example {
 	appName := c.AppName()
-	return map[string]string{
-		"Does nothing": fmt.Sprintf("%s %s", appName, c.Name()),
+	return []command.Example{
+		{Description: "Does nothing", Command: fmt.Sprintf("%s %s", appName, c.Name())},
 	}
 }
 

@@ -77,7 +77,14 @@ func ArgumentAsString(arguments []Argument) string {
 	return strings.Join(argumentString, " ")
 }
 
+// ArgumentsString renders the arguments section of help output.
 func ArgumentsString(arguments []Argument) string {
+	return argumentsString(arguments, 0)
+}
+
+// argumentsString renders the arguments section of help output, wrapping
+// descriptions to cols columns. Zero disables wrapping.
+func argumentsString(arguments []Argument, cols int) string {
 	maxlen := 0
 	lines := make([]string, 0, len(arguments))
 	for _, argument := range arguments {
@@ -89,9 +96,9 @@ func ArgumentsString(arguments []Argument) string {
 		}
 
 		if argument.Optional {
-			line = fmt.Sprintf("      [%s%s]", argument.Name, suffix)
+			line = fmt.Sprintf("  [%s%s]", argument.Name, suffix)
 		} else {
-			line = fmt.Sprintf("      <%s%s>", argument.Name, suffix)
+			line = fmt.Sprintf("  <%s%s>", argument.Name, suffix)
 		}
 
 		switch argument.Type {
@@ -113,7 +120,6 @@ func ArgumentsString(arguments []Argument) string {
 	}
 
 	buf := new(bytes.Buffer)
-	cols := 0
 	for _, line := range lines {
 		sidx := strings.Index(line, "\x00")
 		spacing := strings.Repeat(" ", maxlen-sidx)
@@ -121,7 +127,7 @@ func ArgumentsString(arguments []Argument) string {
 		fmt.Fprintln(buf, line[:sidx], spacing, wrap(maxlen+2, cols, line[sidx+1:]))
 	}
 
-	return buf.String()
+	return strings.TrimRight(buf.String(), "\n")
 }
 
 // Splits the string `s` on whitespace into an initial substring up to
