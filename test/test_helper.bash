@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2034,SC2154
+# The variables defined here are used by the test files, and status, output
+# and stderr are set by bats.
 
 bats_require_minimum_version 1.5.0
 

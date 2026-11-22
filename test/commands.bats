@@ -115,7 +115,6 @@ load test_helper
 
 @test "(commands) completion installs only its own file" {
   touch "$HOME/.bashrc" "$HOME/.zshrc"
-  before="$(ls -la "$HOME")"
 
   run --separate-stderr "$NESTED" completion bash --install
   assert_status 2

@@ -17,7 +17,7 @@ load test_helper
 @test "(output) FORCE_COLOR colors piped output, and NO_COLOR wins" {
   export FORCE_COLOR=1
   run --separate-stderr "$HELLO" eat --count x
-  assert_contains "$stderr" "$ESC["
+  assert_contains "$stderr" "${ESC}["
 
   export NO_COLOR=1
   run --separate-stderr "$HELLO" eat --count x
