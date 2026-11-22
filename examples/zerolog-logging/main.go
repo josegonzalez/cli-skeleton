@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 
 	"zerolog-logging/commands"
@@ -18,24 +17,11 @@ var AppName = "zerolog-logging"
 var Version string
 
 func main() {
-	os.Exit(Run(os.Args[1:]))
-}
-
-// Executes the specified subcommand
-func Run(args []string) int {
-	ctx := context.Background()
-	commandMeta := command.SetupRun(ctx, AppName, Version, args)
-	commandMeta.Ui = command.ZerologUiWithFields(commandMeta.Ui, make(map[string]interface{}, 0))
-	c := cli.NewCLI(AppName, Version)
-	c.Args = os.Args[1:]
-	c.Commands = command.Commands(ctx, commandMeta, Commands)
-	exitCode, err := c.Run()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error executing CLI: %s\n", err.Error())
-		return 1
-	}
-
-	return exitCode
+	os.Exit(command.Main(context.Background(), AppName, Version, os.Args[1:], Commands,
+		command.WithUi(func(ui cli.Ui) cli.Ui {
+			return command.ZerologUiWithFields(ui, make(map[string]interface{}, 0))
+		}),
+	))
 }
 
 // Returns a list of implemented commands

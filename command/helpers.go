@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"os"
 
 	"github.com/mitchellh/cli"
 	"github.com/posener/complete"
@@ -24,8 +23,7 @@ func MergeAutocompleteFlags(flags ...complete.Flags) complete.Flags {
 // CommandErrorText is used to easily render the same messaging across commads
 // when an error is printed.
 func CommandErrorText(cmd NamedCommand) string {
-	appName := os.Getenv("CLI_APP_NAME")
-	return fmt.Sprintf("For additional help try '%s %s --help'", appName, cmd.Name())
+	return fmt.Sprintf("For additional help try '%s %s --help'", cmd.AppName(), cmd.Name())
 }
 
 // uiErrorWriter is a io.Writer that wraps underlying ui.ErrorWriter().

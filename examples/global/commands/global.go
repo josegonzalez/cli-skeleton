@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 
 	"github.com/josegonzalez/cli-skeleton/command"
@@ -28,7 +27,7 @@ func (c *GlobalCommand) Help() string {
 }
 
 func (c *GlobalCommand) Examples() map[string]string {
-	appName := os.Getenv("CLI_APP_NAME")
+	appName := c.AppName()
 	return map[string]string{
 		"Prints the values of the global flags": fmt.Sprintf("%s %s", appName, c.Name()),
 	}

@@ -20,6 +20,19 @@ type ZerologUi struct {
 	stderr      io.Writer
 	stdoutColor bool
 	stderrColor bool
+	settings    *Settings
+}
+
+func (u *ZerologUi) uiSettings() *Settings {
+	return u.settings
+}
+
+func (u *ZerologUi) quiet() bool {
+	return u.settings != nil && u.settings.Quiet
+}
+
+func (u *ZerologUi) debug() bool {
+	return u.settings != nil && u.settings.Debug
 }
 
 func (u *ZerologUi) Ask(query string) (string, error) {
@@ -39,9 +52,21 @@ func (u *ZerologUi) Error(message string) {
 	u.StderrLogger.Error().Msg(message)
 }
 
-// Info logs an informational message to stderr.
+// Info logs an informational message to stderr. It is dropped under --quiet.
 func (u *ZerologUi) Info(message string) {
+	if u.quiet() {
+		return
+	}
 	u.StderrLogger.Info().Msg(message)
+}
+
+// Debug logs a debugging message to stderr. It is only written under
+// --debug.
+func (u *ZerologUi) Debug(message string) {
+	if !u.debug() {
+		return
+	}
+	u.StderrLogger.Debug().Msg(message)
 }
 
 // Output logs primary output to stdout.
@@ -57,13 +82,21 @@ func (u *ZerologUi) Warn(message string) {
 	u.StderrLogger.Warn().Msg(message)
 }
 
-// LogHeader1 logs a top-level progress header to stderr.
+// LogHeader1 logs a top-level progress header to stderr. It is dropped
+// under --quiet.
 func (u *ZerologUi) LogHeader1(message string) {
+	if u.quiet() {
+		return
+	}
 	u.StderrLogger.Info().Int("_header", 1).Msg(message)
 }
 
-// LogHeader2 logs a second-level progress header to stderr.
+// LogHeader2 logs a second-level progress header to stderr. It is dropped
+// under --quiet.
 func (u *ZerologUi) LogHeader2(message string) {
+	if u.quiet() {
+		return
+	}
 	u.StderrLogger.Info().Int("_header", 2).Msg(message)
 }
 
@@ -86,19 +119,24 @@ func (u *ZerologUi) Fields(newFields map[string]interface{}) *ZerologUi {
 		stderr:      u.stderr,
 		stdoutColor: u.stdoutColor,
 		stderrColor: u.stderrColor,
+		settings:    u.settings,
 	})
 }
 
 // ZerologUiWithFields returns a ZerologUi that logs through zerolog's
 // console writer. Color follows the wrapped UI when it implements
-// ColorReporter, and ColorEnabled otherwise.
+// ColorReporter, and ColorEnabled otherwise. When the wrapped UI comes from
+// Main, the run settings apply: info messages are dropped under --quiet, and
+// timestamps and level labels are only shown under --debug.
 func ZerologUiWithFields(ui cli.Ui, fields map[string]interface{}) *ZerologUi {
 	return newZerologUi(ui, fields, defaultZerologUiOptions(ui, false))
 }
 
 // HumanZerologUiWithFields returns a ZerologUi that logs through HumanWriter.
 // Color follows the wrapped UI when it implements ColorReporter, and
-// ColorEnabled otherwise.
+// ColorEnabled otherwise. When the wrapped UI comes from Main, the run
+// settings apply: info messages and headers are dropped under --quiet, and
+// timestamps are only shown under --debug.
 func HumanZerologUiWithFields(ui cli.Ui, fields map[string]interface{}) *ZerologUi {
 	return newZerologUi(ui, fields, defaultZerologUiOptions(ui, true))
 }
@@ -109,6 +147,7 @@ type zerologUiOptions struct {
 	stderr      io.Writer
 	stdoutColor bool
 	stderrColor bool
+	settings    *Settings
 }
 
 func defaultZerologUiOptions(ui cli.Ui, human bool) zerologUiOptions {
@@ -119,28 +158,39 @@ func defaultZerologUiOptions(ui cli.Ui, human bool) zerologUiOptions {
 		stderr:      os.Stderr,
 		stdoutColor: stdoutColor,
 		stderrColor: stderrColor,
+		settings:    settingsOf(ui),
 	}
 }
 
 func newZerologUi(ui cli.Ui, fields map[string]interface{}, opts zerologUiOptions) *ZerologUi {
+	debug := opts.settings != nil && opts.settings.Debug
+
 	var stdoutWriter, stderrWriter io.Writer
 	if opts.human {
 		stdoutWriter = NewHumanWriter(func(w *HumanWriter) {
 			w.Out = opts.stdout
 			w.NoColor = !opts.stdoutColor
+			w.ShowTimestamp = debug
 		})
 		stderrWriter = NewHumanWriter(func(w *HumanWriter) {
 			w.Out = opts.stderr
 			w.NoColor = !opts.stderrColor
+			w.ShowTimestamp = debug
 		})
 	} else {
+		var exclude []string
+		if !debug {
+			exclude = []string{zerolog.TimestampFieldName, zerolog.LevelFieldName}
+		}
 		stdoutWriter = zerolog.NewConsoleWriter(func(w *zerolog.ConsoleWriter) {
 			w.Out = opts.stdout
 			w.NoColor = !opts.stdoutColor
+			w.PartsExclude = exclude
 		})
 		stderrWriter = zerolog.NewConsoleWriter(func(w *zerolog.ConsoleWriter) {
 			w.Out = opts.stderr
 			w.NoColor = !opts.stderrColor
+			w.PartsExclude = exclude
 		})
 	}
 
@@ -155,6 +205,7 @@ func newZerologUi(ui cli.Ui, fields map[string]interface{}, opts zerologUiOption
 		stderr:            opts.stderr,
 		stdoutColor:       opts.stdoutColor,
 		stderrColor:       opts.stderrColor,
+		settings:          opts.settings,
 	}
 }
 

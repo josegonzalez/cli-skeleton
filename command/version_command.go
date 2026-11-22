@@ -2,7 +2,6 @@ package command
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/posener/complete"
 	flag "github.com/spf13/pflag"
@@ -33,9 +32,8 @@ func (c *VersionCommand) AutocompleteArgs() complete.Predictor {
 }
 
 func (c *VersionCommand) Examples() map[string]string {
-	appName := os.Getenv("CLI_APP_NAME")
 	return map[string]string{
-		"Return the version of the binary": fmt.Sprintf("%s %s", appName, c.Name()),
+		"Return the version of the binary": fmt.Sprintf("%s %s", c.AppName(), c.Name()),
 	}
 }
 
@@ -71,7 +69,7 @@ func (c *VersionCommand) Run(args []string) int {
 		return 1
 	}
 
-	c.Ui.Output(os.Getenv("CLI_VERSION"))
+	c.Ui.Output(c.Version())
 
 	return 0
 }

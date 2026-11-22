@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/josegonzalez/cli-skeleton/command"
 	"github.com/posener/complete"
@@ -26,7 +25,7 @@ func (c *NilCommand) Help() string {
 }
 
 func (c *NilCommand) Examples() map[string]string {
-	appName := os.Getenv("CLI_APP_NAME")
+	appName := c.AppName()
 	return map[string]string{
 		"Does nothing": fmt.Sprintf("%s %s", appName, c.Name()),
 	}

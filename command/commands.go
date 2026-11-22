@@ -2,7 +2,6 @@ package command
 
 import (
 	"context"
-	"os"
 	"strings"
 
 	"github.com/mitchellh/cli"
@@ -14,8 +13,10 @@ const (
 	EnvCLINoColor = `NO_COLOR`
 )
 
-// NamedCommand is a interface to denote a commmand's name.
+// NamedCommand is a interface to denote a commmand's name. AppName is
+// provided by embedding Meta.
 type NamedCommand interface {
+	AppName() string
 	Name() string
 }
 
@@ -30,14 +31,17 @@ func Commands(ctx context.Context, metaPtr *Meta, commandsFunc CommandFunc) map[
 
 	meta := *metaPtr
 	if meta.Ui == nil {
-		meta.Ui = NewTerminalUi(meta.appName, meta.colorDisabled)
+		meta.Ui = NewTerminalUi(meta.appName, meta.IsNoColor())
 	}
 	meta.Context = ctx
 
 	return commandsFunc(ctx, meta)
 }
 
+// Command is implemented by every cli-skeleton command. AppName is provided
+// by embedding Meta.
 type Command interface {
+	AppName() string
 	Name() string
 	FlagSet() *flag.FlagSet
 	Arguments() []Argument
@@ -46,9 +50,8 @@ type Command interface {
 }
 
 func CommandHelp(c Command) string {
-	appName := os.Getenv("CLI_APP_NAME")
 	helpText := `
-Usage: ` + appName + ` ` + c.Name() + ` ` + FlagString(c.FlagSet()) + ` ` + ArgumentAsString(c.Arguments()) + `
+Usage: ` + c.AppName() + ` ` + c.Name() + ` ` + FlagString(c.FlagSet()) + ` ` + ArgumentAsString(c.Arguments()) + `
 
   ` + c.Synopsis()
 

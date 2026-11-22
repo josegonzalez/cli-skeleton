@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/josegonzalez/cli-skeleton/command"
 	"github.com/posener/complete"
@@ -29,7 +28,7 @@ func (c *EatCommand) Help() string {
 }
 
 func (c *EatCommand) Examples() map[string]string {
-	appName := os.Getenv("CLI_APP_NAME")
+	appName := c.AppName()
 	return map[string]string{
 		"Eats one lollipop quickly":  fmt.Sprintf("%s %s quickly", appName, c.Name()),
 		"Eats one lollipop slowly":   fmt.Sprintf("%s %s slowly", appName, c.Name()),

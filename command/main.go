@@ -1,0 +1,267 @@
+package command
+
+import (
+	"context"
+	"fmt"
+	"io"
+	"os"
+	"strings"
+
+	colorable "github.com/mattn/go-colorable"
+	"github.com/mitchellh/cli"
+	flag "github.com/spf13/pflag"
+)
+
+// Exit codes returned by Main and Execute.
+const (
+	// ExitCodeOK is returned when a command succeeds.
+	ExitCodeOK = 0
+
+	// ExitCodeError is returned when a command fails.
+	ExitCodeError = 1
+
+	// ExitCodeUsage is returned when a command is called with invalid
+	// flags or arguments.
+	ExitCodeUsage = 2
+
+	// ExitCodeUnknownCommand is returned when the requested command does not
+	// exist.
+	ExitCodeUnknownCommand = 127
+
+	// ExitCodeInterrupt is returned when a command is interrupted by a
+	// signal.
+	ExitCodeInterrupt = 130
+)
+
+// Option configures Main.
+type Option func(*mainOptions)
+
+type mainOptions struct {
+	ui          func(cli.Ui) cli.Ui
+	globalFlags func(*flag.FlagSet)
+
+	stdin  io.Reader
+	stdout io.Writer
+	stderr io.Writer
+}
+
+// WithUi replaces the UI used by commands. The function receives the
+// default UI, which already applies the run settings, and returns the UI
+// to use, such as a ZerologUi wrapping it.
+func WithUi(fn func(cli.Ui) cli.Ui) Option {
+	return func(o *mainOptions) {
+		o.ui = fn
+	}
+}
+
+// WithGlobalFlags registers the app-global flags defined by fn. Main uses
+// them to accept those flags before the subcommand as well as after it.
+// Commands still need to add the flags to their own FlagSet.
+func WithGlobalFlags(fn func(*flag.FlagSet)) Option {
+	return func(o *mainOptions) {
+		o.globalFlags = fn
+	}
+}
+
+// withStreams replaces stdin, stdout and stderr. It is used by tests.
+func withStreams(stdin io.Reader, stdout io.Writer, stderr io.Writer) Option {
+	return func(o *mainOptions) {
+		o.stdin = stdin
+		o.stdout = stdout
+		o.stderr = stderr
+	}
+}
+
+// Main runs the cli tool and returns its exit code.
+//
+//	func main() {
+//		os.Exit(command.Main(context.Background(), AppName, Version, os.Args[1:], Commands))
+//	}
+//
+// It resolves the framework settings from the environment and args, builds
+// the UI, moves framework and app-global flags placed before the subcommand
+// to after it, and runs the matching command.
+func Main(ctx context.Context, appName string, version string, args []string, commandsFunc CommandFunc, opts ...Option) int {
+	o := &mainOptions{}
+	for _, opt := range opts {
+		opt(o)
+	}
+
+	knownFlags := globalFlagSet(o.globalFlags)
+	settings := resolveSettings(appName, args, knownFlags)
+
+	st := o.streams()
+	stdin, stdout, stderr := st.in, st.out, st.err
+	base := &TerminalUi{
+		Reader:      stdin,
+		Writer:      stdout,
+		ErrorWriter: stderr,
+		OutputColor: colorEnabled(IsTerminal(st.outFile), appName, settings.NoColor),
+		ErrorColor:  colorEnabled(IsTerminal(st.errFile), appName, settings.NoColor),
+	}
+
+	var ui cli.Ui = newSettingsUi(base, settings, stdin)
+	if o.ui != nil {
+		ui = o.ui(ui)
+		if _, ok := ui.(settingsProvider); !ok {
+			ui = newSettingsUi(ui, settings, stdin)
+		}
+	}
+
+	meta := &Meta{
+		Ui:       ui,
+		Context:  ctx,
+		appName:  appName,
+		version:  version,
+		settings: settings,
+	}
+
+	commands := Commands(ctx, meta, commandsFunc)
+
+	c := &cli.CLI{
+		Name:        appName,
+		Version:     version,
+		Args:        moveGlobalFlags(args, knownFlags, commands),
+		Commands:    commands,
+		HelpWriter:  stdout,
+		ErrorWriter: stderr,
+	}
+
+	exitCode, err := c.Run()
+	if err != nil {
+		ui.Error(fmt.Sprintf("Error executing CLI: %s", err.Error()))
+		return ExitCodeError
+	}
+
+	return exitCode
+}
+
+// runStreams holds the streams of a run. outFile and errFile are the
+// process files behind out and err, used for terminal detection; they are
+// nil when the streams were replaced.
+type runStreams struct {
+	in      io.Reader
+	out     io.Writer
+	err     io.Writer
+	outFile *os.File
+	errFile *os.File
+}
+
+// streams returns the configured streams, defaulting to the process streams.
+func (o *mainOptions) streams() runStreams {
+	st := runStreams{in: o.stdin, out: o.stdout, err: o.stderr}
+	if st.in == nil {
+		st.in = os.Stdin
+	}
+	if st.out == nil {
+		st.out = colorable.NewColorableStdout()
+		st.outFile = os.Stdout
+	}
+	if st.err == nil {
+		st.err = colorable.NewColorableStderr()
+		st.errFile = os.Stderr
+	}
+	return st
+}
+
+// globalFlagSet returns a FlagSet holding the framework-global flags and the
+// app-global flags. It describes the flags Main may move and pre-scan, and
+// is never parsed.
+func globalFlagSet(globalFlags func(*flag.FlagSet)) *flag.FlagSet {
+	f := flag.NewFlagSet("global", flag.ContinueOnError)
+	addClientFlags(f, &Settings{})
+	if globalFlags != nil {
+		globalFlags(f)
+	}
+	return f
+}
+
+// moveGlobalFlags moves known flags placed before the subcommand to after
+// it, so `app --no-color eat` behaves like `app eat --no-color`. Flags that
+// are not known, such as --help and --version, stop the move and are left
+// in place.
+//
+// When no subcommand follows the moved flags, they are dropped, since their
+// settings have already been applied.
+func moveGlobalFlags(args []string, known *flag.FlagSet, commands map[string]cli.CommandFactory) []string {
+	i := 0
+	var moved []string
+	for i < len(args) {
+		n := matchKnownFlag(args, i, known)
+		if n == 0 {
+			break
+		}
+		moved = append(moved, args[i:i+n]...)
+		i += n
+	}
+
+	if len(moved) == 0 {
+		return args
+	}
+
+	rest := args[i:]
+	if len(rest) == 0 || strings.HasPrefix(rest[0], "-") {
+		return append([]string{}, rest...)
+	}
+
+	end := commandPathLength(rest, commands)
+	result := make([]string, 0, len(args))
+	result = append(result, rest[:end]...)
+	result = append(result, moved...)
+	result = append(result, rest[end:]...)
+	return result
+}
+
+// matchKnownFlag returns the number of args taken by the known flag at
+// args[i], or 0 when args[i] is not a known flag.
+func matchKnownFlag(args []string, i int, known *flag.FlagSet) int {
+	arg := args[i]
+	if arg == "--" || arg == "-" || !strings.HasPrefix(arg, "-") {
+		return 0
+	}
+
+	if strings.HasPrefix(arg, "--") {
+		name, _, hasValue := strings.Cut(arg[2:], "=")
+		f := known.Lookup(name)
+		if f == nil {
+			return 0
+		}
+		if takesValue(f) && !hasValue {
+			if i+1 >= len(args) {
+				return 1
+			}
+			return 2
+		}
+		return 1
+	}
+
+	for j := 1; j < len(arg); j++ {
+		f := known.ShorthandLookup(arg[j : j+1])
+		if f == nil {
+			return 0
+		}
+		if takesValue(f) {
+			if j == len(arg)-1 && i+1 < len(args) {
+				return 2
+			}
+			return 1
+		}
+	}
+	return 1
+}
+
+// commandPathLength returns how many leading args name the subcommand,
+// matching nested commands such as `lollipop eat`. When nothing matches,
+// the first arg is treated as the subcommand.
+func commandPathLength(args []string, commands map[string]cli.CommandFactory) int {
+	longest := 1
+	for n := 1; n <= len(args); n++ {
+		if strings.HasPrefix(args[n-1], "-") {
+			break
+		}
+		if _, ok := commands[strings.Join(args[:n], " ")]; ok {
+			longest = n
+		}
+	}
+	return longest
+}

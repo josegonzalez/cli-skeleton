@@ -50,6 +50,10 @@ type HumanWriter struct {
 	// NoColor disables the colorized output.
 	NoColor bool
 
+	// ShowTimestamp prefixes each line with its timestamp, formatted with
+	// TimeFormat.
+	ShowTimestamp bool
+
 	// TimeFormat specifies the format for timestamp in output.
 	TimeFormat string
 
@@ -267,7 +271,7 @@ func (w HumanWriter) writePart(buf *bytes.Buffer, evt map[string]interface{}, p 
 		}
 	case zerolog.TimestampFieldName:
 		if w.FormatTimestamp == nil {
-			f = consoleDefaultFormatTimestamp(w.TimeFormat, w.NoColor)
+			f = consoleDefaultFormatTimestamp(w.TimeFormat, w.NoColor, w.ShowTimestamp)
 		} else {
 			f = w.FormatTimestamp
 		}
@@ -330,9 +334,22 @@ func consoleDefaultPartsOrder() []string {
 	}
 }
 
-func consoleDefaultFormatTimestamp(timeFormat string, noColor bool) zerolog.Formatter {
+func consoleDefaultFormatTimestamp(timeFormat string, noColor bool, show bool) zerolog.Formatter {
 	return func(i interface{}) string {
-		return ""
+		if !show {
+			return ""
+		}
+
+		value, ok := i.(string)
+		if !ok {
+			return ""
+		}
+
+		t, err := time.Parse(zerolog.TimeFieldFormat, value)
+		if err != nil {
+			return colorize(value, colorDarkGray, noColor)
+		}
+		return colorize(t.Local().Format(timeFormat), colorDarkGray, noColor)
 	}
 }
 

@@ -92,23 +92,3 @@ func TestColorEnabledPipeIsNotATerminal(t *testing.T) {
 		t.Fatal("nil file reported as terminal")
 	}
 }
-
-func TestScanNoColor(t *testing.T) {
-	tests := []struct {
-		args []string
-		want bool
-	}{
-		{args: []string{"eat"}, want: false},
-		{args: []string{"eat", "--no-color"}, want: true},
-		{args: []string{"--no-color", "eat"}, want: true},
-		{args: []string{"eat", "--no-color=true"}, want: true},
-		{args: []string{"eat", "--no-color=false"}, want: false},
-		{args: []string{"eat", "--", "--no-color"}, want: false},
-		{args: []string{"eat", "-no-color"}, want: false},
-	}
-	for _, tt := range tests {
-		if got := scanNoColor(tt.args); got != tt.want {
-			t.Errorf("scanNoColor(%v) = %v, want %v", tt.args, got, tt.want)
-		}
-	}
-}

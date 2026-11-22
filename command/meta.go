@@ -23,9 +23,14 @@ const (
 type FlagSetFlags uint
 
 const (
-	FlagSetNone    FlagSetFlags = 0
-	FlagSetClient  FlagSetFlags = 1 << iota
-	FlagSetDefault              = FlagSetClient
+	FlagSetNone FlagSetFlags = 0
+
+	// FlagSetClient adds the framework-global flags: --no-color,
+	// --no-input, -q/--quiet, -d/--debug and --no-pager. Their values are
+	// shared by every command and resolved before the UI is built.
+	FlagSetClient FlagSetFlags = 1 << iota
+
+	FlagSetDefault = FlagSetClient
 )
 
 // Meta contains the meta-options and functionality that nearly
@@ -35,14 +40,66 @@ type Meta struct {
 
 	Context context.Context
 
-	// Whether to not-colorize output, as set by the --no-color flag
-	noColor bool
-
-	// Whether color was disabled before flags were parsed
-	colorDisabled bool
-
 	// The name of the cli tool
 	appName string
+
+	// The version of the cli tool
+	version string
+
+	// The settings shared by every command in the run
+	settings *Settings
+}
+
+// AppName returns the name of the cli tool.
+func (m *Meta) AppName() string {
+	return m.appName
+}
+
+// Version returns the version of the cli tool.
+func (m *Meta) Version() string {
+	return m.version
+}
+
+// ensureSettings returns the run settings, creating empty ones when the Meta
+// was not created by Main.
+func (m *Meta) ensureSettings() *Settings {
+	if m.settings == nil {
+		m.settings = &Settings{}
+	}
+	return m.settings
+}
+
+// IsNoColor reports whether --no-color was passed.
+func (m *Meta) IsNoColor() bool {
+	return m.ensureSettings().NoColor
+}
+
+// IsNoInput reports whether --no-input was passed.
+func (m *Meta) IsNoInput() bool {
+	return m.ensureSettings().NoInput
+}
+
+// IsQuiet reports whether -q/--quiet was passed.
+func (m *Meta) IsQuiet() bool {
+	return m.ensureSettings().Quiet
+}
+
+// IsDebug reports whether debugging output is enabled through -d/--debug,
+// DEBUG or <APP>_DEBUG.
+func (m *Meta) IsDebug() bool {
+	return m.ensureSettings().Debug
+}
+
+// IsVerbose reports whether verbose output is enabled through
+// <APP>_VERBOSE or debug mode.
+func (m *Meta) IsVerbose() bool {
+	s := m.ensureSettings()
+	return s.Verbose || s.Debug
+}
+
+// IsNoPager reports whether --no-pager was passed.
+func (m *Meta) IsNoPager() bool {
+	return m.ensureSettings().NoPager
 }
 
 // FlagSet returns a FlagSet with the common flags that every
@@ -52,10 +109,8 @@ type Meta struct {
 func (m *Meta) FlagSet(n string, fs FlagSetFlags) *flag.FlagSet {
 	f := flag.NewFlagSet(n, flag.ContinueOnError)
 
-	// FlagSetClient is used to enable the settings for specifying
-	// client connectivity options.
 	if fs&FlagSetClient != 0 {
-		f.BoolVar(&m.noColor, "no-color", false, "disables colored command output. Alternatively, NO_COLOR may be set.")
+		addClientFlags(f, m.ensureSettings())
 	}
 
 	f.SetOutput(&uiErrorWriter{ui: m.Ui})
@@ -71,13 +126,19 @@ func (m *Meta) AutocompleteFlags(fs FlagSetFlags) complete.Flags {
 
 	return complete.Flags{
 		"--no-color": complete.PredictNothing,
+		"--no-input": complete.PredictNothing,
+		"--quiet":    complete.PredictNothing,
+		"-q":         complete.PredictNothing,
+		"--debug":    complete.PredictNothing,
+		"-d":         complete.PredictNothing,
+		"--no-pager": complete.PredictNothing,
 	}
 }
 
 func (m *Meta) Colorize() *colorstring.Colorize {
 	return &colorstring.Colorize{
 		Colors:  colorstring.DefaultColors,
-		Disable: !ColorEnabled(os.Stdout, m.appName, m.noColor || m.colorDisabled),
+		Disable: !ColorEnabled(os.Stdout, m.appName, m.IsNoColor()),
 		Reset:   true,
 	}
 }
