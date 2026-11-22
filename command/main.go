@@ -238,6 +238,7 @@ func Main(ctx context.Context, appName string, version string, args []string, co
 
 	if isCompletionRequest() {
 		addParentCommands(meta, commands)
+		meta.registry.commands = commands
 		c := &cli.CLI{
 			Name:           appName,
 			Version:        version,
@@ -264,6 +265,7 @@ func Main(ctx context.Context, appName string, version string, args []string, co
 		return code
 	}
 	addParentCommands(meta, commands)
+	meta.registry.commands = commands
 
 	help := &helpWriter{meta: meta}
 	c := &cli.CLI{
@@ -338,7 +340,7 @@ func addParentCommands(meta *Meta, commands map[string]cli.CommandFactory) {
 	for _, parent := range parents {
 		parent := parent
 		commands[parent] = func() (cli.Command, error) {
-			return &parentCommand{Meta: *meta, name: parent, commands: commands}, nil
+			return &parentCommand{Meta: *meta, name: parent}, nil
 		}
 	}
 }

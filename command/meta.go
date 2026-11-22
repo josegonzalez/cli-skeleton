@@ -154,8 +154,9 @@ type Meta struct {
 // shared by pointer, since commands receive their copy of Meta before
 // aliases and deprecated commands are registered.
 type commandRegistry struct {
-	hidden  []string
-	aliases map[string]string
+	hidden   []string
+	aliases  map[string]string
+	commands map[string]cli.CommandFactory
 }
 
 // writeOut writes text to stdout, bypassing any log formatting of the UI.

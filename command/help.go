@@ -101,6 +101,10 @@ func renderCommandHelp(c Command, o helpOptions) string {
 		h.section("OPTIONS", options)
 	}
 
+	if subcommands := m.subcommandList(c.Name()); subcommands != "" {
+		h.section("SUBCOMMANDS", subcommands)
+	}
+
 	if aliases := m.aliasesFor(c.Name()); len(aliases) > 0 {
 		h.section("ALIASES", indent(strings.Join(aliases, ", "), 2))
 	}
@@ -332,16 +336,27 @@ func (m *Meta) stderrColor() bool {
 	return stderr
 }
 
-// HelpTemplate implements cli.CommandHelpTemplate, so the subcommand list
-// mitchellh/cli appends to the help of parent commands matches the rest of
-// the help output.
+// HelpTemplate implements cli.CommandHelpTemplate. CommandHelp lists the
+// subcommands of a command itself, so the list mitchellh/cli would append is
+// left out.
 func (m *Meta) HelpTemplate() string {
-	h := &helpBuilder{color: m.stdoutColor()}
-	return `{{.Help | trim}}{{if gt (len .Subcommands) 0}}
+	return `{{.Help | trim}}`
+}
 
-` + h.heading("SUBCOMMANDS") + `
-{{- range $value := .Subcommands }}
-  {{ $value.NameAligned }}   {{ $value.Synopsis }}{{ end }}{{ end }}`
+// subcommandList renders the direct subcommands of name, or an empty
+// string when it has none.
+func (m *Meta) subcommandList(name string) string {
+	if m.registry == nil {
+		return ""
+	}
+
+	children := map[string]cli.CommandFactory{}
+	for key, factory := range m.registry.commands {
+		if rest, ok := strings.CutPrefix(key, name+" "); ok && !strings.Contains(rest, " ") && !m.isHidden(key) {
+			children[rest] = factory
+		}
+	}
+	return commandList(children)
 }
 
 // topLevelHelp renders the help shown by `app --help`, or the concise help
@@ -424,7 +439,10 @@ func (m *Meta) visibleCommands(commands map[string]cli.CommandFactory) map[strin
 	for name := range commands {
 		if parent, _, ok := strings.Cut(name, " "); ok && !m.isHidden(parent) {
 			if _, exists := visible[parent]; !exists {
-				visible[parent] = nil
+				parent := parent
+				visible[parent] = func() (cli.Command, error) {
+					return &parentCommand{Meta: *m, name: parent}, nil
+				}
 			}
 		}
 	}
@@ -620,8 +638,7 @@ func (c *examplesCommand) Run(args []string) int {
 type parentCommand struct {
 	Meta
 
-	name     string
-	commands map[string]cli.CommandFactory
+	name string
 }
 
 func (c *parentCommand) Name() string          { return c.name }
@@ -636,33 +653,26 @@ func (c *parentCommand) FlagSet() *flag.FlagSet {
 	return c.Meta.FlagSet(c.name, FlagSetNone)
 }
 
-// Help returns the parent help. mitchellh/cli appends the subcommand list.
+// Help returns the parent help, listing its subcommands.
 func (c *parentCommand) Help() string {
-	h := &helpBuilder{color: c.stdoutColor()}
+	return c.render(c.stdoutColor())
+}
+
+// render builds the parent help.
+func (c *parentCommand) render(color bool) string {
+	h := &helpBuilder{color: color}
 	h.section("USAGE", indent(c.appName+" "+c.name+" <command> [flags]", 2))
 	h.paragraph(c.Synopsis())
+	if subcommands := c.subcommandList(c.name); subcommands != "" {
+		h.section("SUBCOMMANDS", subcommands)
+	}
+	h.paragraph(fmt.Sprintf("Run '%s %s <command> --help' for more information on a command.", c.appName, c.name))
 	h.learnMore(&c.Meta, commandPath(c.name))
 	return h.String()
 }
 
-// Run prints the parent help and its subcommands to stderr, since a
-// subcommand is required.
+// Run prints the parent help to stderr, since a subcommand is required.
 func (c *parentCommand) Run(args []string) int {
-	h := &helpBuilder{color: c.stderrColor()}
-	h.section("USAGE", indent(c.appName+" "+c.name+" <command> [flags]", 2))
-	h.paragraph(c.Synopsis())
-
-	children := map[string]cli.CommandFactory{}
-	for name, factory := range c.commands {
-		if rest, ok := strings.CutPrefix(name, c.name+" "); ok && !strings.Contains(rest, " ") && !c.isHidden(name) {
-			children[rest] = factory
-		}
-	}
-	if list := commandList(children); list != "" {
-		h.section("SUBCOMMANDS", list)
-	}
-	h.paragraph(fmt.Sprintf("Run '%s %s <command> --help' for more information on a command.", c.appName, c.name))
-
-	c.writeErr(h.String())
+	c.writeErr(c.render(c.stderrColor()))
 	return ExitCodeUsage
 }

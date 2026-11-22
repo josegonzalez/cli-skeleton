@@ -140,7 +140,7 @@ func (c *configCommand) configEntries() []configEntry {
 	}
 
 	for name, factory := range c.commands {
-		if name == c.Name() || factory == nil {
+		if name == c.Name() || factory == nil || c.isHidden(name) {
 			continue
 		}
 		raw, err := factory()
