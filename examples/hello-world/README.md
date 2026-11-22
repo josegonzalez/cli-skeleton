@@ -6,17 +6,35 @@ An example cli tool for the `cli-skeleton` project.
 
 ```shell
 # substitute the version number as desired
-go build -ldflags "-X main.Version=0.1.0
+go build -ldflags "-X main.Version=0.1.0"
 ```
 
 ## Usage
 
 ```
-Usage: hello-world [--version] [--help] <command> [<args>]
+An example cli tool that eats lollipops.
 
-Available commands are:
-    eat        Eats one or more lollipops
-    version    Return the version of the binary
+USAGE
+  hello-world <command> [flags]
+
+EXAMPLES
+  Eat a lollipop
+    $ hello-world eat
+
+  Eat two red lollipops quickly
+    $ hello-world eat --count 2 --color red quickly
+
+COMMANDS
+  completion   Print or install the shell completion script
+  eat          Eats one or more lollipops
+  examples     Show examples for every command
+  version      Return the version of the binary
+
+OPTIONS
+  -h, --help      show help for the app or a command
+  -v, --version   show the version
+
+Run 'hello-world help <command>' or 'hello-world <command> --help' for more information on a command.
 ```
 
 ## Implementing this tutorial
@@ -34,7 +52,7 @@ Next, create a `main.go` with the following contents:
 package main
 
 import (
-  "fmt"
+  "context"
   "os"
 
   "github.com/josegonzalez/cli-skeleton/command"
@@ -48,26 +66,13 @@ var AppName = "hello-world"
 var Version string
 
 func main() {
-  os.Exit(Run(os.Args[1:]))
-}
-
-// Executes the specified command
-func Run(args []string) int {
-  commandMeta := command.SetupRun(AppName, Version, args)
-  c := cli.NewCLI(AppName, Version)
-  c.Args = os.Args[1:]
-  c.Commands = command.Commands(commandMeta, Commands)
-  exitCode, err := c.Run()
-  if err != nil {
-    fmt.Fprintf(os.Stderr, "Error executing CLI: %s\n", err.Error())
-    return 1
-  }
-
-  return exitCode
+  os.Exit(command.Main(context.Background(), AppName, Version, os.Args[1:], Commands,
+    command.WithDescription("An example cli tool that eats lollipops."),
+  ))
 }
 
 // Returns a list of implemented commands
-func Commands(meta command.Meta) map[string]cli.CommandFactory {
+func Commands(ctx context.Context, meta command.Meta) map[string]cli.CommandFactory {
   return map[string]cli.CommandFactory{
     "version": func() (cli.Command, error) {
       return &command.VersionCommand{Meta: meta}, nil
@@ -76,13 +81,22 @@ func Commands(meta command.Meta) map[string]cli.CommandFactory {
 }
 ```
 
-Run `go build -ldflags "-X main.Version=0.1.0"` to build the `0.1.0` version of the tool in the current directory. Running `./hello-world` will now show the following output:
+`command.Main` resolves the framework flags and environment variables, builds the UI, runs the requested command and returns its exit code. It also adds the `help`, `examples` and `completion` commands, and the hidden `docs` command.
+
+Run `go build -ldflags "-X main.Version=0.1.0"` to build the `0.1.0` version of the tool in the current directory. Running `./hello-world` without a command will now show concise help on stderr, and exit with code `2`:
 
 ```
-Usage: hello-world [--version] [--help] <command> [<args>]
+An example cli tool that eats lollipops.
 
-Available commands are:
-    version    Return the version of the binary
+USAGE
+  hello-world <command> [flags]
+
+COMMANDS
+  completion   Print or install the shell completion script
+  examples     Show examples for every command
+  version      Return the version of the binary
+
+Run 'hello-world --help' for more information.
 ```
 
 The `cli-skeleton` project includes a helpful `version` command that can be executed via `./hello-world version` with the following output:
@@ -90,6 +104,8 @@ The `cli-skeleton` project includes a helpful `version` command that can be exec
 ```
 0.1.0
 ```
+
+`./hello-world version --json` also prints the Go version, platform and the commit the binary was built from.
 
 ### Adding additional commands
 
@@ -103,28 +119,27 @@ type EatCommand struct {
 }
 ```
 
-`EatCommand` should implement the following interface:
+Embedding `command.Meta` provides the UI, the context, the app name and version, and the helpers used below. `EatCommand` should implement the following interface:
 
 ```go
 type Command interface {
-  Arguments()                    []Argument
-  AutocompleteArgs()             complete.Predictor
-  AutocompleteFlags()            complete.Flags
-  Examples()                     map[string]string
-  FlagSet()                      *flag.FlagSet
-  Help()                         string
-  Name()                         string
-  ParsedArguments(args []string) (map[string]Argument, error)
-  Run(args []string)             int
-  Synopsis()                     string
+  Arguments()         []command.Argument
+  AutocompleteArgs()  complete.Predictor
+  AutocompleteFlags() complete.Flags
+  Examples()          []command.Example
+  FlagSet()           *flag.FlagSet
+  Help()              string
+  Name()              string
+  Run(args []string)  int
+  Synopsis()          string
 }
 ```
 
-The following section will describe each interface function and how to implement them for the example `eat` command. Each section will include all required `import` statements. Please be sure to de-duplicate them when creating the `eat.go`  file.
+The following section will describe each interface function and how to implement them for the example `eat` command. Each section will include all required `import` statements. Please be sure to de-duplicate them when creating the `eat.go` file.
 
 #### Naming the command
 
-The `Name()` function must return the name of the command. This is used in parsing, help output, and other examples.
+The `Name()` function must return the name of the command. This is used in parsing, help output, and other examples. Nested commands use their full name, such as `lollipop eat`.
 
 ```go
 func (c *EatCommand) Name() string {
@@ -142,6 +157,8 @@ func (c *EatCommand) Synopsis() string {
 }
 ```
 
+A longer description can be added with an optional `Description()` function. It is shown in the full help output and in generated docs.
+
 #### Help output
 
 To start, the following boilerplate help command can be quickly added (note the `import` statement, which only needs to be included once per command file):
@@ -154,38 +171,39 @@ func (c *EatCommand) Help() string {
 }
 ```
 
-As long as all the other interface functions are implemented, the `eat` command will automatically support the `--help` and `-h` flags for help output.
+As long as all the other interface functions are implemented, the `eat` command will automatically support the `--help` and `-h` flags, as well as `hello-world help eat`.
 
 #### Help examples
 
 > While examples are excellent, it is recommended to have 5 or fewer examples in the help output. Further examples should be sent to documentation or potentially result in splitting the command into multiple commands.
 
-Users wishing to understand _how_ to use cli tool will want a few examples. These can be easily specified like so:
+Users wishing to understand _how_ to use cli tool will want a few examples. They are shown in the order they are declared, so lead with the most common uses:
 
 ```go
 import (
   "fmt"
-  "os"
+
+  "github.com/josegonzalez/cli-skeleton/command"
 )
 
-func (c *EatCommand) Examples() map[string]string {
-  appName := os.Getenv("CLI_APP_NAME")
-  return map[string]string{
-    "Eats one lollipop quickly": fmt.Sprintf("%s %s quickly", appName, c.Name()),
-    "Eats one lollipop slowly": fmt.Sprintf("%s %s slowly", appName, c.Name()),
-    "Eats two lollipops quickly": fmt.Sprintf("%s %s --count 2 quickly", appName, c.Name()),
-    "Eats three red lollipops": fmt.Sprintf("%s %s --count 3 --color red", appName, c.Name()),
+func (c *EatCommand) Examples() []command.Example {
+  appName := c.AppName()
+  return []command.Example{
+    {Description: "Eats one lollipop quickly", Command: fmt.Sprintf("%s %s quickly", appName, c.Name())},
+    {Description: "Eats one lollipop slowly", Command: fmt.Sprintf("%s %s slowly", appName, c.Name())},
+    {Description: "Eats two lollipops quickly", Command: fmt.Sprintf("%s %s --count 2 quickly", appName, c.Name())},
+    {Description: "Eats three red lollipops", Command: fmt.Sprintf("%s %s --count 3 --color red", appName, c.Name())},
   }
 }
 ```
 
-Examples are a great way to help users get started with the cli tool, allowing contributors to embed further examples for common tasks without having them rot in a place far away from the actual code.
+An `Example` can also set `Output` to show what the command prints. Examples are a great way to help users get started with the cli tool, allowing contributors to embed further examples for common tasks without having them rot in a place far away from the actual code. `hello-world examples` prints the examples of every command.
 
 #### Arguments
 
 Arguments can be added by specifying an `Arguments()` function like so:
 
-```
+```go
 import "github.com/josegonzalez/cli-skeleton/command"
 
 func (c *EatCommand) Arguments() []command.Argument {
@@ -204,14 +222,18 @@ The `Arguments()` function returns a slice of `Argument` structs. An `Argument` 
 
 ```go
 type Argument struct {
-  Name        string       // The name of the argument
-  Description string       // An optional description of the argument
-  Optional    bool         // Whether the argument is optional or not
-  Type        ArgumentType // The type of the Argument. Valid types are: ArgumentString, ArgumentInt, ArgumentBool, ArgumentList
-  Value       interface{}  // The value of the interface
-  HasValue    bool         // A boolean that contains whether the Argument has a value. Populated during argument parsing
+  Name        string                   // The name of the argument
+  Description string                   // An optional description of the argument
+  Optional    bool                     // Whether the argument is optional or not
+  Type        ArgumentType             // The type of the Argument
+  Value       interface{}              // The value of the interface
+  HasValue    bool                     // Whether the Argument has a value. Populated during argument parsing
+  Prompt      string                   // An optional question asked when a required argument is missing
+  Validate    func(value string) error // An optional check run on each value before the command runs
 }
 ```
+
+Valid types are `ArgumentString`, `ArgumentInt`, `ArgumentBool`, `ArgumentFloat`, `ArgumentDuration`, `ArgumentFile` (an existing file, or `-` for stdin) and `ArgumentList`, which collects the remaining arguments and must come last.
 
 When specifying an argument in the `Arguments()` function, only the following attributes should be specified:
 
@@ -219,6 +241,10 @@ When specifying an argument in the `Arguments()` function, only the following at
 - Description
 - Optional
 - Type
+- Prompt
+- Validate
+
+When a required argument with a `Prompt` is missing and stdin is a terminal, the user is asked for it. Otherwise, the command shows its concise help and exits with code `2`.
 
 #### Argument autocompletion
 
@@ -232,19 +258,7 @@ func (c *EatCommand) AutocompleteArgs() complete.Predictor {
 }
 ```
 
-Argument autocompletion is usually not useful except for when the argument is predictable from a list, which is usually only the case when only a single argument is specified or the arguments are a list.
-
-#### Argument Parsing
-
-Argument parsing involves a boilerplate function. It is not strictly necessary, but makes it easier to handle arguments within the main `Run()` function of the command.
-
-```go
-import "github.com/josegonzalez/cli-skeleton/command"
-
-func (c *EatCommand) ParsedArguments(args []string) (map[string]command.Argument, error) {
-  return command.ParseArguments(args, c.Arguments())
-}
-```
+Argument autocompletion is usually not useful except for when the argument is predictable from a list, which is usually only the case when only a single argument is specified or the arguments are a list. Users enable completion with `hello-world completion --install`.
 
 #### Flags
 
@@ -258,7 +272,7 @@ import (
 
 // EatCommand struct respecified for completeness of example
 type EatCommand struct {
-  Meta
+  command.Meta
 
   count int
   color string
@@ -271,6 +285,8 @@ func (c *EatCommand) FlagSet() *flag.FlagSet {
   return f
 }
 ```
+
+`command.FlagSetClient` adds the framework flags every command should accept: `--no-color`, `--no-input`, `-q`/`--quiet`, `-d`/`--debug` and `--no-pager`. Other flag set bits add standard flags such as `--json`, `--plain`, `-f`/`--force` and `-n`/`--dry-run`; see the [project README](../../README.md#arguments-and-flags) for the full list.
 
 Flags _should_ only be used for optional arguments on the command, or when specifying an argument without a name on the command line would make it less clear as to what is being specified
 
@@ -288,8 +304,8 @@ func (c *EatCommand) AutocompleteFlags() complete.Flags {
   return command.MergeAutocompleteFlags(
     c.Meta.AutocompleteFlags(command.FlagSetClient),
     complete.Flags{
-      "--count":           complete.PredictAnything,
-      "--color":           complete.PredictSet("red", "orange", "yellow", "green", "blue", "purple"),
+      "--count": complete.PredictAnything,
+      "--color": complete.PredictSet("red", "orange", "yellow", "green", "blue", "purple"),
     },
   )
 }
@@ -297,7 +313,7 @@ func (c *EatCommand) AutocompleteFlags() complete.Flags {
 
 #### Defining the main `Run()` codeblock
 
-Once a command has been filled out, the only thing left is defining the `Run()` command. This is used to parse arguments and flags before actually running the command code.
+Once a command has been filled out, the only thing left is defining the `Run()` command. `command.Execute` parses the flags and arguments, then runs the given function with the parsed arguments.
 
 The following is the `Run()` command for our example `EatCommand`.
 
@@ -309,44 +325,38 @@ import (
 )
 
 func (c *EatCommand) Run(args []string) int {
-  flags := c.FlagSet()
-  flags.Usage = func() { c.Ui.Output(c.Help()) }
-  if err := flags.Parse(args); err != nil {
-    c.Ui.Error(err.Error())
-    c.Ui.Error(command.CommandErrorText(c))
-    return 1
-  }
+  return command.Execute(c, args, func(arguments map[string]command.Argument) error {
+    name := arguments["speed"].StringValue()
+    if name == "" {
+      name = "normally"
+    }
 
-  arguments, err := c.ParsedArguments(flags.Args())
-  if err != nil {
-    c.Ui.Error(err.Error())
-    c.Ui.Error(command.CommandErrorText(c))
-    return 1
-  }
+    c.Ui.Output(fmt.Sprintf("Eating %d %v lollipop(s) %v", c.count, c.color, name))
 
-  name := arguments["speed"].StringValue()
-  if name == "" {
-    name = "normally"
-  }
-
-  c.Ui.Output(fmt.Sprintf("Eating %d %v lollipop(s) %v", c.count, c.color, name))
-
-  return 0
+    return nil
+  })
 }
 ```
 
-> Note that arguments and flags are not validated - this is an exercise left to the developer.
+> Note that arguments and flags are only validated as far as their types and `Validate` functions go - any further validation is an exercise left to the developer.
 
-Errors are output via `c.Ui.Error()` - showing the `CommandErrorText` text as appropriate. This allows users to self-discover issues with their execution of the subcommand.
+`command.Execute` turns the returned error into output and an exit code:
 
-Additionally, the `Run()` command returns an integer, which represents the response code. `0` should be returned in case of success, with anything between `1` and `255` being an error state. It is recommended that users respect shell exit codes when using anything other than exit codes `0` and `1`.
+- Invalid flags or arguments print a short error and a pointer to the help, and exit with code `2`.
+- `command.NewUserError(message, hint)` prints the message, then a hint on how to fix it.
+- Common errors, such as missing files or refused connections, are rewritten with a suggested fix.
+- Any other error prints its message and exits with code `1`.
+
+Primary output should be written with `c.Ui.Output()`, which goes to stdout. Messages for the user, such as progress or warnings, should be written with `c.Ui.Info()` and `c.Ui.Warn()`, which go to stderr so they never end up in a pipe.
 
 #### Adding the command to the cli
 
 To add the new command, modify the `Commands()` function in the `main.go` to specify the new `eat` subcommand. The following is the full content of that function, including the necessary import statements:
 
-```
+```go
 import (
+  "context"
+
   "hello-world/commands"
 
   "github.com/josegonzalez/cli-skeleton/command"
@@ -354,7 +364,7 @@ import (
 )
 
 // Returns a list of implemented commands
-func Commands(meta command.Meta) map[string]cli.CommandFactory {
+func Commands(ctx context.Context, meta command.Meta) map[string]cli.CommandFactory {
   return map[string]cli.CommandFactory{
     "eat": func() (cli.Command, error) {
       return &commands.EatCommand{Meta: meta}, nil
@@ -366,16 +376,58 @@ func Commands(meta command.Meta) map[string]cli.CommandFactory {
 }
 ```
 
+#### Testing
+
+`commandtest.ValidateCommands` checks the commands against the Command Line Interface Guidelines. Add a `main_test.go` next to `main.go`:
+
+```go
+package main
+
+import (
+  "testing"
+
+  "github.com/josegonzalez/cli-skeleton/command/commandtest"
+)
+
+func TestCommands(t *testing.T) {
+  commandtest.ValidateCommands(t, AppName, Commands)
+}
+```
+
 #### Building
 
-Once everything is put together, the `go build -ldflags "-X main.Version=0.1.0"` command - with the version modified as desired - can be executed to rebuild the binary. The following is the new help output:
+Once everything is put together, the `go build -ldflags "-X main.Version=0.1.0"` command - with the version modified as desired - can be executed to rebuild the binary. The output of `./hello-world eat --help` is now:
 
 ```
-Usage: hello-world [--version] [--help] <command> [<args>]
+USAGE
+  hello-world eat [flags] [speed]
 
-Available commands are:
-    eat        Eats one or more lollipops
-    version    Return the version of the binary
+Eats one or more lollipops
+
+EXAMPLES
+  Eats one lollipop quickly
+    $ hello-world eat quickly
+
+  Eats one lollipop slowly
+    $ hello-world eat slowly
+
+  Eats two lollipops quickly
+    $ hello-world eat --count 2 quickly
+
+  Eats three red lollipops
+    $ hello-world eat --count 3 --color red
+
+ARGUMENTS
+  [speed] string   how quickly to eat the lollipop
+
+OPTIONS
+      --color string   the color of the lollipops being eaten (default "normal")
+      --count int      number of lollipops to eat (default 1)
+  -d, --debug          print debugging output; DEBUG or HELLO_WORLD_DEBUG may also be set
+      --no-color       disable colored output; NO_COLOR or HELLO_WORLD_NO_COLOR may also be set
+      --no-input       never prompt for input; fail instead when input is required
+      --no-pager       do not page long output
+  -q, --quiet          only print essential output
 ```
 
 If there are any errors in compilation or output, please compare with the code in this directory.

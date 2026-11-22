@@ -6,17 +6,26 @@ An example "global" tool for the `cli-skeleton` project. It provides a `global.g
 
 ```shell
 # substitute the version number as desired
-go build -ldflags "-X main.Version=0.1.0
+go build -ldflags "-X main.Version=0.1.0"
 ```
 
 ## Usage
 
 ```
-Usage: global [--version] [--help] <command> [<args>]
+USAGE
+  global <command> [flags]
 
-Available commands are:
-    global     Global command that prints the values of the global flags
-    version    Return the version of the binary
+COMMANDS
+  completion   Print or install the shell completion script
+  examples     Show examples for every command
+  global       Global command that prints the values of the global flags
+  version      Return the version of the binary
+
+OPTIONS
+  -h, --help      show help for the app or a command
+  -v, --version   show the version
+
+Run 'global help <command>' or 'global <command> --help' for more information on a command.
 ```
 
 ## Implementation
@@ -41,7 +50,7 @@ import (
 
 func (c *GlobalFlagCommand) GlobalFlags(f *flag.FlagSet) {
   f.BoolVar(&c.global, "global", false, "a bool global flag")
-  f.StringVar(&c.globalValue, "global-value", "", "a string global flag")
+  f.StringVar(&c.globalValue, "global-string", "", "a string global flag")
 }
 ```
 
@@ -49,18 +58,18 @@ To autocomplete the global flags, implement a `AutocompleteGlobalFlags()` functi
 
 ```go
 import (
-	"github.com/posener/complete"
+  "github.com/posener/complete"
 )
 
 func (c *GlobalFlagCommand) AutocompleteGlobalFlags() complete.Flags {
-	return complete.Flags{
-		"--global":        complete.PredictNothing,
-		"--global-string": complete.PredictAnything,
-	}
+  return complete.Flags{
+    "--global":        complete.PredictNothing,
+    "--global-string": complete.PredictAnything,
+  }
 }
 ```
 
-Lastly, there should be three modifications to each of the cli tool's commands. The first is to include `GlobalFlagCommand` in the command struct like so:
+Next, there should be three modifications to each of the cli tool's commands. The first is to include `GlobalFlagCommand` in the command struct like so:
 
 ```go
 import (
@@ -88,7 +97,7 @@ func (c *GlobalCommand) FlagSet() *flag.FlagSet {
 }
 ```
 
-Lastly, global flags need to be added to autocompletion. This is done by including the return of `AutocompleteGlobalFlags()` in `AutocompleteFlags()`.
+Then, global flags need to be added to autocompletion. This is done by including the return of `AutocompleteGlobalFlags()` in `AutocompleteFlags()`.
 
 ```go
 func (c *GlobalCommand) AutocompleteFlags() complete.Flags {
@@ -99,3 +108,15 @@ func (c *GlobalCommand) AutocompleteFlags() complete.Flags {
   )
 }
 ```
+
+Lastly, register the global flags with `command.Main` in `main.go`, so they can also be passed before the command name, as in `global --global-string value global`:
+
+```go
+func main() {
+  os.Exit(command.Main(context.Background(), AppName, Version, os.Args[1:], Commands,
+    command.WithGlobalFlags((&commands.GlobalFlagCommand{}).GlobalFlags),
+  ))
+}
+```
+
+The framework flags added by `command.FlagSetClient`, such as `--quiet` and `--no-color`, can always be passed before the command name.
