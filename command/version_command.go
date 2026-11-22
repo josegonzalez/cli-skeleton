@@ -45,31 +45,13 @@ func (c *VersionCommand) Name() string {
 	return "version"
 }
 
-func (c *VersionCommand) ParsedArguments(args []string) (map[string]Argument, error) {
-	return ParseArguments(args, c.Arguments())
-}
-
 func (c *VersionCommand) Synopsis() string {
 	return "Return the version of the binary"
 }
 
 func (c *VersionCommand) Run(args []string) int {
-	flags := c.FlagSet()
-	flags.Usage = func() { c.Ui.Output(c.Help()) }
-	if err := flags.Parse(args); err != nil {
-		c.Ui.Error(err.Error())
-		c.Ui.Error(CommandErrorText(c))
-		return 1
-	}
-
-	_, err := c.ParsedArguments(flags.Args())
-	if err != nil {
-		c.Ui.Error(err.Error())
-		c.Ui.Error(CommandErrorText(c))
-		return 1
-	}
-
-	c.Ui.Output(c.Version())
-
-	return 0
+	return Execute(c, args, func(arguments map[string]Argument) error {
+		c.Ui.Output(c.Version())
+		return nil
+	})
 }

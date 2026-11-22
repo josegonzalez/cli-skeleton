@@ -42,6 +42,7 @@ type mainOptions struct {
 	globalFlags func(*flag.FlagSet)
 	gracePeriod *time.Duration
 	exit        func(int)
+	issueURL    string
 
 	stdin  io.Reader
 	stdout io.Writer
@@ -144,6 +145,17 @@ func Main(ctx context.Context, appName string, version string, args []string, co
 		version:    version,
 		settings:   settings,
 		interrupts: interrupts,
+		issueURL:   o.issueURL,
+		stderr:     stderr,
+	}
+
+	debugLog, err := openDebugLog(appName)
+	if err != nil {
+		base.Warn(err.Error())
+	}
+	if debugLog != nil {
+		defer debugLog.Close()
+		meta.debugLog = debugLog
 	}
 
 	commands := Commands(ctx, meta, commandsFunc)
@@ -157,9 +169,20 @@ func Main(ctx context.Context, appName string, version string, args []string, co
 		ErrorWriter: stderr,
 	}
 
+	return runCLI(c, meta)
+}
+
+// runCLI runs c, reporting errors and panics that escape the command.
+func runCLI(c *cli.CLI, meta *Meta) (code int) {
+	defer func() {
+		if r := recover(); r != nil {
+			code = meta.reportError(nil, panicError(r))
+		}
+	}()
+
 	exitCode, err := c.Run()
 	if err != nil {
-		ui.Error(fmt.Sprintf("Error executing CLI: %s", err.Error()))
+		meta.Ui.Error(fmt.Sprintf("Error executing CLI: %s", err.Error()))
 		return ExitCodeError
 	}
 

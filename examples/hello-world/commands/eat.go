@@ -52,10 +52,6 @@ func (c *EatCommand) AutocompleteArgs() complete.Predictor {
 	return complete.PredictNothing
 }
 
-func (c *EatCommand) ParsedArguments(args []string) (map[string]command.Argument, error) {
-	return command.ParseArguments(args, c.Arguments())
-}
-
 func (c *EatCommand) FlagSet() *flag.FlagSet {
 	f := c.Meta.FlagSet(c.Name(), command.FlagSetClient)
 	f.IntVar(&c.count, "count", 1, "number of lollipops to eat")
@@ -74,27 +70,14 @@ func (c *EatCommand) AutocompleteFlags() complete.Flags {
 }
 
 func (c *EatCommand) Run(args []string) int {
-	flags := c.FlagSet()
-	flags.Usage = func() { c.Ui.Output(c.Help()) }
-	if err := flags.Parse(args); err != nil {
-		c.Ui.Error(err.Error())
-		c.Ui.Error(command.CommandErrorText(c))
-		return 1
-	}
+	return command.Execute(c, args, func(arguments map[string]command.Argument) error {
+		name := arguments["speed"].StringValue()
+		if name == "" {
+			name = "normally"
+		}
 
-	arguments, err := c.ParsedArguments(flags.Args())
-	if err != nil {
-		c.Ui.Error(err.Error())
-		c.Ui.Error(command.CommandErrorText(c))
-		return 1
-	}
+		c.Ui.Output(fmt.Sprintf("Eating %d %v lollipop(s) %v", c.count, c.color, name))
 
-	name := arguments["speed"].StringValue()
-	if name == "" {
-		name = "normally"
-	}
-
-	c.Ui.Output(fmt.Sprintf("Eating %d %v lollipop(s) %v", c.count, c.color, name))
-
-	return 0
+		return nil
+	})
 }

@@ -38,9 +38,12 @@ func Commands(ctx context.Context, metaPtr *Meta, commandsFunc CommandFunc) map[
 	return commandsFunc(ctx, meta)
 }
 
-// Command is implemented by every cli-skeleton command. AppName is provided
-// by embedding Meta.
+// Command is implemented by every cli-skeleton command. Commands satisfy it
+// by embedding Meta, which provides AppName and the unexported accessors
+// used by Execute.
 type Command interface {
+	meta() *Meta
+
 	AppName() string
 	Name() string
 	FlagSet() *flag.FlagSet

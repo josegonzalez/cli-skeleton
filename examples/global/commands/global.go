@@ -42,10 +42,6 @@ func (c *GlobalCommand) AutocompleteArgs() complete.Predictor {
 	return complete.PredictNothing
 }
 
-func (c *GlobalCommand) ParsedArguments(args []string) (map[string]command.Argument, error) {
-	return command.ParseArguments(args, c.Arguments())
-}
-
 func (c *GlobalCommand) FlagSet() *flag.FlagSet {
 	f := c.Meta.FlagSet(c.Name(), command.FlagSetClient)
 	c.GlobalFlags(f)
@@ -61,23 +57,10 @@ func (c *GlobalCommand) AutocompleteFlags() complete.Flags {
 }
 
 func (c *GlobalCommand) Run(args []string) int {
-	flags := c.FlagSet()
-	flags.Usage = func() { c.Ui.Output(c.Help()) }
-	if err := flags.Parse(args); err != nil {
-		c.Ui.Error(err.Error())
-		c.Ui.Error(command.CommandErrorText(c))
-		return 1
-	}
+	return command.Execute(c, args, func(_ map[string]command.Argument) error {
+		c.Ui.Output(fmt.Sprintf("Global bool value: %s", strconv.FormatBool(c.global)))
+		c.Ui.Output(fmt.Sprintf("Global string value: %s", c.globalValue))
 
-	_, err := c.ParsedArguments(flags.Args())
-	if err != nil {
-		c.Ui.Error(err.Error())
-		c.Ui.Error(command.CommandErrorText(c))
-		return 1
-	}
-
-	c.Ui.Output(fmt.Sprintf("Global bool value: %s", strconv.FormatBool(c.global)))
-	c.Ui.Output(fmt.Sprintf("Global string value: %s", c.globalValue))
-
-	return 0
+		return nil
+	})
 }

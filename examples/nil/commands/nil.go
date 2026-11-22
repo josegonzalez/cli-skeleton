@@ -40,10 +40,6 @@ func (c *NilCommand) AutocompleteArgs() complete.Predictor {
 	return complete.PredictNothing
 }
 
-func (c *NilCommand) ParsedArguments(args []string) (map[string]command.Argument, error) {
-	return command.ParseArguments(args, c.Arguments())
-}
-
 func (c *NilCommand) FlagSet() *flag.FlagSet {
 	f := c.Meta.FlagSet(c.Name(), command.FlagSetClient)
 	return f
@@ -57,20 +53,7 @@ func (c *NilCommand) AutocompleteFlags() complete.Flags {
 }
 
 func (c *NilCommand) Run(args []string) int {
-	flags := c.FlagSet()
-	flags.Usage = func() { c.Ui.Output(c.Help()) }
-	if err := flags.Parse(args); err != nil {
-		c.Ui.Error(err.Error())
-		c.Ui.Error(command.CommandErrorText(c))
-		return 1
-	}
-
-	_, err := c.ParsedArguments(flags.Args())
-	if err != nil {
-		c.Ui.Error(err.Error())
-		c.Ui.Error(command.CommandErrorText(c))
-		return 1
-	}
-
-	return 0
+	return command.Execute(c, args, func(_ map[string]command.Argument) error {
+		return nil
+	})
 }

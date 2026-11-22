@@ -3,6 +3,7 @@ package command
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -51,6 +52,21 @@ type Meta struct {
 
 	// The interrupt handler of the run
 	interrupts *interruptHandler
+
+	// The URL where users report bugs
+	issueURL string
+
+	// Where debugging output is written under --debug
+	stderr io.Writer
+
+	// The file named by <APP>_DEBUG_LOG, when set
+	debugLog io.Writer
+}
+
+// meta returns the Meta. Commands satisfy the Command interface by
+// embedding Meta.
+func (m *Meta) meta() *Meta {
+	return m
 }
 
 // AppName returns the name of the cli tool.
