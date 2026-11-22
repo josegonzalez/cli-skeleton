@@ -62,6 +62,18 @@ func runTestMain(t *testing.T, args []string, commands map[string]*testCommand, 
 
 func runTestMainWithInput(t *testing.T, input string, args []string, commands map[string]*testCommand, opts ...Option) mainResult {
 	t.Helper()
+	return runTestMainFull(t, input, args, commands, nil, opts...)
+}
+
+// runTestMainWithFactories runs Main with test commands and extra commands
+// built from factories.
+func runTestMainWithFactories(t *testing.T, args []string, commands map[string]*testCommand, extra map[string]func(Meta) Command, opts ...Option) mainResult {
+	t.Helper()
+	return runTestMainFull(t, "", args, commands, extra, opts...)
+}
+
+func runTestMainFull(t *testing.T, input string, args []string, commands map[string]*testCommand, extra map[string]func(Meta) Command, opts ...Option) mainResult {
+	t.Helper()
 	clearColorEnv(t)
 
 	stdout := new(bytes.Buffer)
@@ -75,6 +87,12 @@ func runTestMainWithInput(t *testing.T, input string, args []string, commands ma
 			factories[name] = func() (cli.Command, error) {
 				c.Meta = meta
 				return c, nil
+			}
+		}
+		for name, build := range extra {
+			build := build
+			factories[name] = func() (cli.Command, error) {
+				return build(meta).(cli.Command), nil
 			}
 		}
 		return factories

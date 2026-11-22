@@ -112,11 +112,8 @@ type Meta struct {
 	docsURL    string
 	supportURL string
 
-	// Commands hidden from the command list
-	hiddenCommands []string
-
-	// Explicit aliases, mapping each alias to its command
-	aliases map[string]string
+	// Hidden commands and aliases, shared by every command of the run
+	registry *commandRegistry
 
 	// The values of the opt-in standard flags of the command
 	flags commandFlags
@@ -151,6 +148,14 @@ type Meta struct {
 
 	// Where each flag value came from
 	valueSources map[string]string
+}
+
+// commandRegistry holds the hidden commands and aliases of a run. It is
+// shared by pointer, since commands receive their copy of Meta before
+// aliases and deprecated commands are registered.
+type commandRegistry struct {
+	hidden  []string
+	aliases map[string]string
 }
 
 // writeOut writes text to stdout, bypassing any log formatting of the UI.

@@ -433,7 +433,10 @@ func (m *Meta) visibleCommands(commands map[string]cli.CommandFactory) map[strin
 
 // isHidden reports whether a command is hidden from the command list.
 func (m *Meta) isHidden(name string) bool {
-	for _, hidden := range m.hiddenCommands {
+	if m.registry == nil {
+		return false
+	}
+	for _, hidden := range m.registry.hidden {
 		if hidden == name {
 			return true
 		}
@@ -441,10 +444,21 @@ func (m *Meta) isHidden(name string) bool {
 	return false
 }
 
+// hiddenCommands returns the commands hidden from the command list.
+func (m *Meta) hiddenCommands() []string {
+	if m.registry == nil {
+		return nil
+	}
+	return m.registry.hidden
+}
+
 // aliasesFor returns the aliases of a command.
 func (m *Meta) aliasesFor(name string) []string {
+	if m.registry == nil {
+		return nil
+	}
 	var aliases []string
-	for alias, target := range m.aliases {
+	for alias, target := range m.registry.aliases {
 		if target == name {
 			aliases = append(aliases, alias)
 		}

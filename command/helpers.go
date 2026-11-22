@@ -26,10 +26,12 @@ func CommandErrorText(cmd NamedCommand) string {
 	return fmt.Sprintf("For additional help try '%s %s --help'", cmd.AppName(), cmd.Name())
 }
 
-// uiErrorWriter is a io.Writer that wraps underlying ui.ErrorWriter().
-// ui.ErrorWriter expects full lines as inputs and it emits its own line breaks.
+// uiErrorWriter is a io.Writer that writes lines as warnings through the
+// UI. Meta.FlagSet uses it for the flag set output, which only receives
+// notices such as flag deprecation warnings, since parse errors are
+// returned and reported by Execute.
 //
-// uiErrorWriter scans input for individual lines to pass to ui.ErrorWriter. If data
+// uiErrorWriter scans input for individual lines to pass to the UI. If data
 // doesn't contain a new line, it buffers result until next new line or writer is closed.
 type uiErrorWriter struct {
 	ui  cli.Ui
@@ -49,7 +51,7 @@ func (w *uiErrorWriter) Write(data []byte) (int, error) {
 			return read + r, err
 		}
 
-		w.ui.Error(w.buf.String() + string(token))
+		w.ui.Warn(w.buf.String() + string(token))
 		data = data[a:]
 		w.buf.Reset()
 		read += a
@@ -61,7 +63,7 @@ func (w *uiErrorWriter) Write(data []byte) (int, error) {
 func (w *uiErrorWriter) Close() error {
 	// emit what's remaining
 	if w.buf.Len() != 0 {
-		w.ui.Error(w.buf.String())
+		w.ui.Warn(w.buf.String())
 		w.buf.Reset()
 	}
 	return nil

@@ -53,6 +53,7 @@ type mainOptions struct {
 	defaultPort    int
 	tailLines      *int
 	config         bool
+	aliases        map[string]string
 
 	stdin  io.Reader
 	stdout io.Writer
@@ -217,6 +218,7 @@ func Main(ctx context.Context, appName string, version string, args []string, co
 		tailLines:      o.tailLines,
 		progressState:  &progressState{},
 		config:         cfg,
+		registry:       &commandRegistry{},
 	}
 	defer meta.progressState.close()
 
@@ -231,6 +233,8 @@ func Main(ctx context.Context, appName string, version string, args []string, co
 
 	commands := Commands(ctx, meta, commandsFunc)
 	addBuiltinCommands(meta, commands)
+	hideDeprecatedCommands(meta, commands)
+	addAliases(meta, commands, o.aliases)
 
 	args = rewriteHelpArgs(moveGlobalFlags(args, knownFlags, commands), commands)
 	if len(args) == 0 {
@@ -251,7 +255,7 @@ func Main(ctx context.Context, appName string, version string, args []string, co
 		Version:        version,
 		Args:           args,
 		Commands:       commands,
-		HiddenCommands: meta.hiddenCommands,
+		HiddenCommands: meta.hiddenCommands(),
 		HelpFunc: func(commands map[string]cli.CommandFactory) string {
 			visible := map[string]cli.CommandFactory{}
 			for name, factory := range commands {
@@ -319,6 +323,7 @@ func (m *Meta) resolveUnknownCommand(args []string, commands map[string]cli.Comm
 			return args, ExitCodeOK, true
 		}
 
+		candidates = m.visibleNames(candidates)
 		suggestions := Suggest(word, candidates)
 		if len(suggestions) != 1 || !m.CanPrompt() {
 			return args, m.reportUnknownCommand(word, candidates), false

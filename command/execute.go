@@ -59,6 +59,7 @@ func Execute(c Command, args []string, run RunFunc) (code int) {
 func Parse(c Command, args []string) (map[string]Argument, error) {
 	m := c.meta()
 	m.commandName = c.Name()
+	m.warnIfDeprecated(c)
 	flags := c.FlagSet()
 	flags.Usage = func() {}
 
