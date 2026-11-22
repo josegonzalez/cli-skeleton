@@ -130,6 +130,18 @@ type Meta struct {
 
 	// The stdin of the run
 	stdin io.Reader
+
+	// The name of the running command
+	commandName string
+
+	// The progress renderer and log shared by the run
+	progressState *progressState
+
+	// Forces a progress mode, for tests
+	progressModeOverride string
+
+	// How many output lines running steps show
+	tailLines *int
 }
 
 // writeOut writes text to stdout, bypassing any log formatting of the UI.

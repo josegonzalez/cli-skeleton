@@ -57,6 +57,7 @@ func Execute(c Command, args []string, run RunFunc) (code int) {
 // Parse parses the flags and arguments of c. It returns ErrHelp when help
 // was requested, and a UsageError when the flags or arguments are invalid.
 func Parse(c Command, args []string) (map[string]Argument, error) {
+	c.meta().commandName = c.Name()
 	flags := c.FlagSet()
 	flags.Usage = func() {}
 
@@ -154,6 +155,11 @@ func (m *Meta) reportError(c Command, err error) int {
 
 	if errors.Is(err, context.Canceled) {
 		return ExitCodeInterrupt
+	}
+
+	var stepErr *StepError
+	if errors.As(err, &stepErr) {
+		return ExitCodeError
 	}
 
 	err = HumanizeError(err)

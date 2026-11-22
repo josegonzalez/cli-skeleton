@@ -25,7 +25,8 @@ func HumanizeError(err error) error {
 	var usageErr *UsageError
 	var multiErr *MultiError
 	var internalErr *InternalError
-	if errors.As(err, &userErr) || errors.As(err, &usageErr) || errors.As(err, &multiErr) || errors.As(err, &internalErr) {
+	var stepErr *StepError
+	if errors.As(err, &userErr) || errors.As(err, &usageErr) || errors.As(err, &multiErr) || errors.As(err, &internalErr) || errors.As(err, &stepErr) {
 		return err
 	}
 

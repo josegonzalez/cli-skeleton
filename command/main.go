@@ -51,6 +51,7 @@ type mainOptions struct {
 
 	defaultTimeout *time.Duration
 	defaultPort    int
+	tailLines      *int
 
 	stdin  io.Reader
 	stdout io.Writer
@@ -201,7 +202,10 @@ func Main(ctx context.Context, appName string, version string, args []string, co
 		defaultTimeout: o.defaultTimeout,
 		defaultPort:    o.defaultPort,
 		stdin:          stdin,
+		tailLines:      o.tailLines,
+		progressState:  &progressState{},
 	}
+	defer meta.progressState.close()
 
 	debugLog, err := openDebugLog(appName)
 	if err != nil {
