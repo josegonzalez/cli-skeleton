@@ -40,10 +40,11 @@ type Settings struct {
 	NoPager bool
 }
 
-// resolveSettings builds the settings for a run from the environment and
-// the command-line arguments. Arguments take precedence over the environment.
-func resolveSettings(appName string, args []string, flags *flag.FlagSet) *Settings {
+// resolveSettings builds the settings for a run from the config files, the
+// environment and the command-line arguments, each overriding the last.
+func resolveSettings(appName string, args []string, flags *flag.FlagSet, cfg *configData) *Settings {
 	s := &Settings{}
+	cfg.applySettingsConfig(s)
 	applyEnvSettings(s, appName)
 	prescanSettings(s, args, flags)
 	return s

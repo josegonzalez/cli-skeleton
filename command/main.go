@@ -52,6 +52,7 @@ type mainOptions struct {
 	defaultTimeout *time.Duration
 	defaultPort    int
 	tailLines      *int
+	config         bool
 
 	stdin  io.Reader
 	stdout io.Writer
@@ -143,10 +144,21 @@ func Main(ctx context.Context, appName string, version string, args []string, co
 		opt(o)
 	}
 
-	knownFlags := globalFlagSet(o.globalFlags)
-	settings := resolveSettings(appName, args, knownFlags)
-
 	st := o.streams()
+
+	var cfg *configData
+	if o.config {
+		var err error
+		cfg, err = loadConfig(appName)
+		if err != nil {
+			fmt.Fprintln(st.err, err.Error())
+			return ExitCodeError
+		}
+	}
+
+	knownFlags := globalFlagSet(o.globalFlags)
+	settings := resolveSettings(appName, args, knownFlags, cfg)
+
 	stdin, stdout, stderr := st.in, st.out, st.err
 	base := &TerminalUi{
 		Reader:      stdin,
@@ -204,6 +216,7 @@ func Main(ctx context.Context, appName string, version string, args []string, co
 		stdin:          stdin,
 		tailLines:      o.tailLines,
 		progressState:  &progressState{},
+		config:         cfg,
 	}
 	defer meta.progressState.close()
 
@@ -263,6 +276,12 @@ func addBuiltinCommands(meta *Meta, commands map[string]cli.CommandFactory) {
 	if _, ok := commands["examples"]; !ok {
 		commands["examples"] = func() (cli.Command, error) {
 			return &examplesCommand{Meta: *meta, commands: commands}, nil
+		}
+	}
+
+	if _, ok := commands["config"]; !ok && meta.config != nil {
+		commands["config"] = func() (cli.Command, error) {
+			return &configCommand{Meta: *meta, commands: commands}, nil
 		}
 	}
 }

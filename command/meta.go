@@ -142,6 +142,15 @@ type Meta struct {
 
 	// How many output lines running steps show
 	tailLines *int
+
+	// The merged config files, when WithConfig is used
+	config *configData
+
+	// Flags bound to environment variables with EnvFlag
+	envFlags map[string]string
+
+	// Where each flag value came from
+	valueSources map[string]string
 }
 
 // writeOut writes text to stdout, bypassing any log formatting of the UI.

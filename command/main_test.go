@@ -20,7 +20,6 @@ type testCommand struct {
 	extra   func(*flag.FlagSet)
 	args    []Argument
 	run      func(c *testCommand, arguments map[string]Argument) int
-	flagSet  *flag.FlagSet
 	examples []Example
 }
 
@@ -39,24 +38,15 @@ func (c *testCommand) FlagSet() *flag.FlagSet {
 }
 
 func (c *testCommand) Run(args []string) int {
-	flags := c.FlagSet()
-	flags.Usage = func() { c.Ui.Output(c.Help()) }
-	if err := flags.Parse(args); err != nil {
-		c.Ui.Error(err.Error())
-		return 1
-	}
-	c.flagSet = flags
-
-	arguments, err := ParseArguments(flags.Args(), c.Arguments())
-	if err != nil {
-		c.Ui.Error(err.Error())
-		return 1
-	}
-
-	if c.run == nil {
-		return 0
-	}
-	return c.run(c, arguments)
+	return Execute(c, args, func(arguments map[string]Argument) error {
+		if c.run == nil {
+			return nil
+		}
+		if code := c.run(c, arguments); code != 0 {
+			return &ExitStatus{Code: code}
+		}
+		return nil
+	})
 }
 
 type mainResult struct {

@@ -338,3 +338,13 @@ func TestBuildInfo(t *testing.T) {
 		t.Fatalf("BuildInfo = %+v", info)
 	}
 }
+
+func TestExecuteExitStatus(t *testing.T) {
+	c, stdout, stderr := newExecuteCommand(nil)
+	code := Execute(c, nil, func(map[string]Argument) error {
+		return &ExitStatus{Code: 42}
+	})
+	if code != 42 || stdout.Len() != 0 || stderr.Len() != 0 {
+		t.Fatalf("code = %d, stdout = %q, stderr = %q", code, stdout.String(), stderr.String())
+	}
+}

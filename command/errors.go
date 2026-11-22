@@ -145,3 +145,13 @@ func (e *InternalError) Error() string {
 func (e *InternalError) Unwrap() error {
 	return e.Err
 }
+
+// ExitStatus exits with Code without printing anything, for commands that
+// have already reported the problem themselves.
+type ExitStatus struct {
+	Code int
+}
+
+func (e *ExitStatus) Error() string {
+	return fmt.Sprintf("exit status %d", e.Code)
+}

@@ -81,7 +81,7 @@ func TestEnvSettings(t *testing.T) {
 
 func TestArgsOverrideEnvSettings(t *testing.T) {
 	t.Setenv("DEBUG", "1")
-	got := resolveSettings("hello-world", []string{"eat", "--debug=false"}, globalFlagSet(nil))
+	got := resolveSettings("hello-world", []string{"eat", "--debug=false"}, globalFlagSet(nil), nil)
 	if got.Debug {
 		t.Fatal("--debug=false should override DEBUG")
 	}
