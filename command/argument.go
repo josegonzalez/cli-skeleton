@@ -262,6 +262,12 @@ func ParseArguments(args []string, arguments []Argument) (map[string]Argument, e
 						return returnArguments, fmt.Errorf("Invalid value for argument %s", arguments[i].Name)
 					}
 					arguments[i].Value = intValue
+				} else if arguments[i].Type == ArgumentBool {
+					boolValue, err := strconv.ParseBool(value)
+					if err != nil {
+						return returnArguments, fmt.Errorf("Invalid value for argument %s", arguments[i].Name)
+					}
+					arguments[i].Value = boolValue
 				} else {
 					arguments[i].Value = value
 				}
