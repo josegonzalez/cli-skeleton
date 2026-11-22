@@ -1,6 +1,7 @@
 package command
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/posener/complete"
@@ -22,7 +23,7 @@ func (c *VersionCommand) Arguments() []Argument {
 
 func (c *VersionCommand) AutocompleteFlags() complete.Flags {
 	return MergeAutocompleteFlags(
-		c.Meta.AutocompleteFlags(FlagSetClient),
+		c.Meta.AutocompleteFlags(FlagSetClient|FlagSetJSON),
 		complete.Flags{},
 	)
 }
@@ -34,11 +35,12 @@ func (c *VersionCommand) AutocompleteArgs() complete.Predictor {
 func (c *VersionCommand) Examples() []Example {
 	return []Example{
 		{Description: "Return the version of the binary", Command: fmt.Sprintf("%s %s", c.AppName(), c.Name())},
+		{Description: "Return the version and build details as JSON", Command: fmt.Sprintf("%s %s --json", c.AppName(), c.Name())},
 	}
 }
 
 func (c *VersionCommand) FlagSet() *flag.FlagSet {
-	return c.Meta.FlagSet(c.Name(), FlagSetClient)
+	return c.Meta.FlagSet(c.Name(), FlagSetClient|FlagSetJSON)
 }
 
 func (c *VersionCommand) Name() string {
@@ -51,7 +53,27 @@ func (c *VersionCommand) Synopsis() string {
 
 func (c *VersionCommand) Run(args []string) int {
 	return Execute(c, args, func(arguments map[string]Argument) error {
+		info := c.BuildInfo()
+		if c.IsJSON() {
+			data, err := json.MarshalIndent(info, "", "  ")
+			if err != nil {
+				return err
+			}
+			c.Ui.Output(string(data))
+			return nil
+		}
+
 		c.Ui.Output(c.Version())
+		if c.IsDebug() {
+			c.Ui.Info(fmt.Sprintf("Go version: %s", info.GoVersion))
+			c.Ui.Info(fmt.Sprintf("Platform: %s/%s", info.OS, info.Arch))
+			if info.Commit != "" {
+				c.Ui.Info(fmt.Sprintf("Commit: %s", info.Commit))
+			}
+			if info.BuildDate != "" {
+				c.Ui.Info(fmt.Sprintf("Build date: %s", info.BuildDate))
+			}
+		}
 		return nil
 	})
 }

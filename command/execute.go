@@ -67,6 +67,10 @@ func Parse(c Command, args []string) (map[string]Argument, error) {
 		return nil, &UsageError{Err: err, Hint: unknownFlagHint(c, flags, err)}
 	}
 
+	if err := c.meta().validateStandardFlags(); err != nil {
+		return nil, err
+	}
+
 	definitions := c.Arguments()
 	arguments, err := ParseArguments(flags.Args(), definitions)
 	if err != nil {
@@ -146,6 +150,8 @@ func (m *Meta) reportError(c Command, err error) int {
 	if errors.Is(err, context.Canceled) {
 		return ExitCodeInterrupt
 	}
+
+	err = HumanizeError(err)
 
 	switch e := err.(type) {
 	case *UsageError:

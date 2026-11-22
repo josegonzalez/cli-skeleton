@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
@@ -31,7 +32,41 @@ const (
 	// shared by every command and resolved before the UI is built.
 	FlagSetClient FlagSetFlags = 1 << iota
 
-	FlagSetDefault = FlagSetClient
+	// FlagSetJSON adds --json, read with Meta.IsJSON.
+	FlagSetJSON
+
+	// FlagSetPlain adds --plain, read with Meta.IsPlain.
+	FlagSetPlain
+
+	// FlagSetForce adds -f/--force, read with Meta.IsForce.
+	FlagSetForce
+
+	// FlagSetDryRun adds -n/--dry-run, read with Meta.IsDryRun.
+	FlagSetDryRun
+
+	// FlagSetConfirm adds --confirm, used by Meta.ConfirmName.
+	FlagSetConfirm
+
+	// FlagSetTimeout adds --timeout, read with Meta.Timeout and
+	// Meta.TimeoutContext.
+	FlagSetTimeout
+
+	// FlagSetOutput adds -o/--output, opened with Meta.OutputWriter.
+	FlagSetOutput
+
+	// FlagSetAll adds -a/--all, read with Meta.IsAll.
+	FlagSetAll
+
+	// FlagSetPort adds -p/--port, read with Meta.Port.
+	FlagSetPort
+
+	// FlagSetUser adds -u/--user, read with Meta.User.
+	FlagSetUser
+
+	// FlagSetDefault adds the framework-global flags and every standard flag.
+	FlagSetDefault = FlagSetClient | FlagSetJSON | FlagSetPlain | FlagSetForce |
+		FlagSetDryRun | FlagSetConfirm | FlagSetTimeout | FlagSetOutput |
+		FlagSetAll | FlagSetPort | FlagSetUser
 )
 
 // Meta contains the meta-options and functionality that nearly
@@ -81,6 +116,13 @@ type Meta struct {
 
 	// Explicit aliases, mapping each alias to its command
 	aliases map[string]string
+
+	// The values of the opt-in standard flags of the command
+	flags commandFlags
+
+	// The defaults of --timeout and --port
+	defaultTimeout *time.Duration
+	defaultPort    int
 }
 
 // writeOut writes text to stdout, bypassing any log formatting of the UI.
@@ -176,6 +218,7 @@ func (m *Meta) FlagSet(n string, fs FlagSetFlags) *flag.FlagSet {
 	if fs&FlagSetClient != 0 {
 		addClientFlags(f, m.ensureSettings(), m.appName)
 	}
+	m.addStandardFlags(f, fs)
 
 	f.SetOutput(&uiErrorWriter{ui: m.Ui})
 
@@ -184,19 +227,25 @@ func (m *Meta) FlagSet(n string, fs FlagSetFlags) *flag.FlagSet {
 
 // AutocompleteFlags returns a set of flag completions for the given flag set.
 func (m *Meta) AutocompleteFlags(fs FlagSetFlags) complete.Flags {
-	if fs&FlagSetClient == 0 {
-		return nil
+	flags := standardFlagCompletions(fs)
+	if fs&FlagSetClient != 0 {
+		for name, predictor := range map[string]complete.Predictor{
+			"--no-color": complete.PredictNothing,
+			"--no-input": complete.PredictNothing,
+			"--quiet":    complete.PredictNothing,
+			"-q":         complete.PredictNothing,
+			"--debug":    complete.PredictNothing,
+			"-d":         complete.PredictNothing,
+			"--no-pager": complete.PredictNothing,
+		} {
+			flags[name] = predictor
+		}
 	}
 
-	return complete.Flags{
-		"--no-color": complete.PredictNothing,
-		"--no-input": complete.PredictNothing,
-		"--quiet":    complete.PredictNothing,
-		"-q":         complete.PredictNothing,
-		"--debug":    complete.PredictNothing,
-		"-d":         complete.PredictNothing,
-		"--no-pager": complete.PredictNothing,
+	if len(flags) == 0 {
+		return nil
 	}
+	return flags
 }
 
 func (m *Meta) Colorize() *colorstring.Colorize {

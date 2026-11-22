@@ -49,6 +49,9 @@ type mainOptions struct {
 	docsURL     string
 	supportURL  string
 
+	defaultTimeout *time.Duration
+	defaultPort    int
+
 	stdin  io.Reader
 	stdout io.Writer
 	stderr io.Writer
@@ -190,6 +193,9 @@ func Main(ctx context.Context, appName string, version string, args []string, co
 		examples:    o.examples,
 		docsURL:     o.docsURL,
 		supportURL:  o.supportURL,
+
+		defaultTimeout: o.defaultTimeout,
+		defaultPort:    o.defaultPort,
 	}
 
 	debugLog, err := openDebugLog(appName)
