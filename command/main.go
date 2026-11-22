@@ -299,6 +299,15 @@ func addBuiltinCommands(meta *Meta, commands map[string]cli.CommandFactory) {
 		}
 	}
 
+	if _, ok := commands["docs"]; !ok {
+		commands["docs"] = func() (cli.Command, error) {
+			return &docsCommand{Meta: *meta, commands: commands}, nil
+		}
+		if meta.registry != nil {
+			meta.registry.hidden = append(meta.registry.hidden, "docs")
+		}
+	}
+
 	if _, ok := commands["completion"]; !ok {
 		commands["completion"] = func() (cli.Command, error) {
 			return &completionCommand{Meta: *meta}, nil
