@@ -44,8 +44,11 @@ func TestTerminalUiColorsErrorsAndWarningsOnly(t *testing.T) {
 	ui.Error("error")
 	ui.Warn("warn")
 
-	if strings.Contains(stdout.String(), "\x1b[") {
-		t.Errorf("output and info should not be colored: %q", stdout.String())
+	if stdout.String() != "output\n" {
+		t.Errorf("output should not be colored: %q", stdout.String())
+	}
+	if !strings.HasPrefix(stderr.String(), "info\n") {
+		t.Errorf("info should not be colored: %q", stderr.String())
 	}
 	if !strings.Contains(stderr.String(), "\x1b[31merror\x1b[0m") {
 		t.Errorf("error should be red: %q", stderr.String())
@@ -71,7 +74,7 @@ func TestTerminalUiColorsStreamsIndependently(t *testing.T) {
 }
 
 func TestTerminalUiAsk(t *testing.T) {
-	ui, stdout, _ := newTestTerminalUi("first\r\nsecond\nlast", false)
+	ui, stdout, stderr := newTestTerminalUi("first\r\nsecond\nlast", false)
 
 	for _, want := range []string{"first", "second", "last"} {
 		got, err := ui.Ask("Name?")
@@ -87,8 +90,11 @@ func TestTerminalUiAsk(t *testing.T) {
 		t.Error("expected EOF error after input is exhausted")
 	}
 
-	if !strings.Contains(stdout.String(), "Name? ") {
-		t.Errorf("query not written: %q", stdout.String())
+	if !strings.Contains(stderr.String(), "Name? ") {
+		t.Errorf("query should be written to stderr: %q", stderr.String())
+	}
+	if stdout.Len() != 0 {
+		t.Errorf("prompts should not be written to stdout: %q", stdout.String())
 	}
 }
 
@@ -101,5 +107,21 @@ func TestTerminalUiAskSecretWithoutTerminal(t *testing.T) {
 	}
 	if got != "hunter2" {
 		t.Errorf("AskSecret = %q", got)
+	}
+}
+
+func TestTerminalUiStreams(t *testing.T) {
+	ui, stdout, stderr := newTestTerminalUi("", false)
+
+	ui.Output("output")
+	ui.Info("info")
+	ui.Warn("warn")
+	ui.Error("error")
+
+	if got := stdout.String(); got != "output\n" {
+		t.Errorf("stdout should only contain output: %q", got)
+	}
+	if got := stderr.String(); got != "info\nwarn\nerror\n" {
+		t.Errorf("stderr should contain messages: %q", got)
 	}
 }

@@ -22,8 +22,10 @@ type ColorReporter interface {
 }
 
 // TerminalUi is a cli.Ui that writes to a pair of streams and decides
-// whether to use color for each stream separately. Errors are red and
-// warnings are yellow. Output and info messages are never colored.
+// whether to use color for each stream separately. Primary output goes to
+// Writer, while info messages, warnings, errors and prompts go to
+// ErrorWriter. Errors are red and warnings are yellow. Output and info
+// messages are never colored.
 //
 // It is safe for concurrent use.
 type TerminalUi struct {
@@ -33,7 +35,7 @@ type TerminalUi struct {
 	// Writer receives primary output.
 	Writer io.Writer
 
-	// ErrorWriter receives errors and warnings.
+	// ErrorWriter receives info messages, warnings, errors and prompts.
 	ErrorWriter io.Writer
 
 	// OutputColor enables color on Writer.
@@ -111,8 +113,11 @@ func (u *TerminalUi) ask(query string, secret bool) (string, error) {
 	return strings.TrimRight(line, "\r\n"), nil
 }
 
+// promptWriter returns the stream prompts are written to. Prompts are
+// messaging rather than output, so they go to stderr and never end up in a
+// pipe.
 func (u *TerminalUi) promptWriter() io.Writer {
-	return u.Writer
+	return u.ErrorWriter
 }
 
 // Output writes a message to Writer.
@@ -120,9 +125,10 @@ func (u *TerminalUi) Output(message string) {
 	u.write(u.Writer, message)
 }
 
-// Info writes an informational message to Writer.
+// Info writes an informational message to ErrorWriter. Informational
+// messages are not primary output, so they stay out of pipes.
 func (u *TerminalUi) Info(message string) {
-	u.write(u.Writer, message)
+	u.write(u.ErrorWriter, message)
 }
 
 // Error writes an error message to ErrorWriter, in red when ErrorColor is set.

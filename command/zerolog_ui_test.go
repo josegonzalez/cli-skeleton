@@ -31,8 +31,8 @@ func TestHumanZerologUiWithoutColor(t *testing.T) {
 	if strings.Contains(all, "\x1b[") {
 		t.Fatalf("escape codes written with color disabled: %q", all)
 	}
-	if !strings.Contains(stdout.String(), "=====> header") {
-		t.Errorf("header missing: %q", stdout.String())
+	if !strings.Contains(stderr.String(), "=====> header") {
+		t.Errorf("header missing: %q", stderr.String())
 	}
 	if !strings.Contains(stderr.String(), " !     error") {
 		t.Errorf("error missing: %q", stderr.String())
@@ -85,5 +85,30 @@ func TestZerologUiFollowsWrappedUiColors(t *testing.T) {
 	stdoutColor, stderrColor := ui.ColorEnabled()
 	if stdoutColor || !stderrColor {
 		t.Fatalf("ColorEnabled() = %v, %v", stdoutColor, stderrColor)
+	}
+}
+
+func TestZerologUiStreams(t *testing.T) {
+	for _, human := range []bool{true, false} {
+		ui, stdout, stderr := newTestZerologUi(human, false)
+
+		ui.Output("the-output")
+		ui.Info("the-info")
+		ui.LogHeader1("the-header1")
+		ui.LogHeader2("the-header2")
+		ui.Warn("the-warn")
+		ui.Error("the-error")
+
+		if !strings.Contains(stdout.String(), "the-output") {
+			t.Errorf("human=%v: output missing from stdout: %q", human, stdout.String())
+		}
+		for _, message := range []string{"the-info", "the-header1", "the-header2", "the-warn", "the-error"} {
+			if strings.Contains(stdout.String(), message) {
+				t.Errorf("human=%v: %s written to stdout: %q", human, message, stdout.String())
+			}
+			if !strings.Contains(stderr.String(), message) {
+				t.Errorf("human=%v: %s missing from stderr: %q", human, message, stderr.String())
+			}
+		}
 	}
 }

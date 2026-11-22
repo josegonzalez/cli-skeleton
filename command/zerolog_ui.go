@@ -39,10 +39,12 @@ func (u *ZerologUi) Error(message string) {
 	u.StderrLogger.Error().Msg(message)
 }
 
+// Info logs an informational message to stderr.
 func (u *ZerologUi) Info(message string) {
-	u.StdoutLogger.Info().Msg(message)
+	u.StderrLogger.Info().Msg(message)
 }
 
+// Output logs primary output to stdout.
 func (u *ZerologUi) Output(message string) {
 	if u.OutputIndentField {
 		u.StdoutLogger.Info().Bool("_indent", false).Msg(message)
@@ -55,12 +57,14 @@ func (u *ZerologUi) Warn(message string) {
 	u.StderrLogger.Warn().Msg(message)
 }
 
+// LogHeader1 logs a top-level progress header to stderr.
 func (u *ZerologUi) LogHeader1(message string) {
-	u.StdoutLogger.Info().Int("_header", 1).Msg(message)
+	u.StderrLogger.Info().Int("_header", 1).Msg(message)
 }
 
+// LogHeader2 logs a second-level progress header to stderr.
 func (u *ZerologUi) LogHeader2(message string) {
-	u.StdoutLogger.Info().Int("_header", 2).Msg(message)
+	u.StderrLogger.Info().Int("_header", 2).Msg(message)
 }
 
 func (u *ZerologUi) Field(field string, value interface{}) *ZerologUi {
