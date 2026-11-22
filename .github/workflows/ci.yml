@@ -30,6 +30,22 @@ jobs:
         uses: actions/setup-go@v7
         with:
           go-version-file: "go.mod"
+      - name: vet
+        run: |
+          go vet ./...
+      - name: unit tests
+        run: |
+          make test
+      - name: compile for windows
+        run: |
+          GOOS=windows go build ./...
       - name: compile go examples
         run: |
           make build
+      - name: install bats
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bats
+      - name: integration tests
+        run: |
+          make test-integration
