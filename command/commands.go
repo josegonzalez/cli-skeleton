@@ -5,7 +5,6 @@ import (
 	"os"
 	"strings"
 
-	colorable "github.com/mattn/go-colorable"
 	"github.com/mitchellh/cli"
 	flag "github.com/spf13/pflag"
 )
@@ -31,11 +30,7 @@ func Commands(ctx context.Context, metaPtr *Meta, commandsFunc CommandFunc) map[
 
 	meta := *metaPtr
 	if meta.Ui == nil {
-		meta.Ui = &cli.BasicUi{
-			Reader:      os.Stdin,
-			Writer:      colorable.NewColorableStdout(),
-			ErrorWriter: colorable.NewColorableStderr(),
-		}
+		meta.Ui = NewTerminalUi(meta.appName, meta.colorDisabled)
 	}
 	meta.Context = ctx
 

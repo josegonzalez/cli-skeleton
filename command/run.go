@@ -3,49 +3,16 @@ package command
 import (
 	"context"
 	"os"
-
-	colorable "github.com/mattn/go-colorable"
-	"github.com/mitchellh/cli"
-	"golang.org/x/crypto/ssh/terminal"
+	"strconv"
+	"strings"
 )
 
 func SetupRun(ctx context.Context, appName string, version string, args []string) *Meta {
-	// Parse flags into env vars for global use
-	SetupEnv(args)
-
 	// Create the meta object
 	metaPtr := new(Meta)
-
-	// Don't use color if disabled
-	color := true
-	if os.Getenv(EnvCLINoColor) != "" {
-		color = false
-	}
-
-	isTerminal := terminal.IsTerminal(int(os.Stdout.Fd()))
-	// Only use colored UI if stdout is a tty, and not disabled
-	if isTerminal && color {
-		metaPtr.Ui = &cli.ConcurrentUi{
-			Ui: &cli.ColoredUi{
-				ErrorColor: cli.UiColorRed,
-				WarnColor:  cli.UiColorYellow,
-				InfoColor:  cli.UiColorGreen,
-				Ui: &cli.BasicUi{
-					Reader:      os.Stdin,
-					Writer:      colorable.NewColorableStdout(),
-					ErrorWriter: colorable.NewColorableStderr(),
-				},
-			},
-		}
-	} else {
-		metaPtr.Ui = &cli.ConcurrentUi{
-			Ui: &cli.BasicUi{
-				Reader:      os.Stdin,
-				Writer:      colorable.NewColorableStdout(),
-				ErrorWriter: colorable.NewColorableStderr(),
-			},
-		}
-	}
+	metaPtr.appName = appName
+	metaPtr.colorDisabled = scanNoColor(args)
+	metaPtr.Ui = NewTerminalUi(appName, metaPtr.colorDisabled)
 
 	os.Setenv("CLI_APP_NAME", appName)
 	os.Setenv("CLI_VERSION", version)
@@ -53,19 +20,27 @@ func SetupRun(ctx context.Context, appName string, version string, args []string
 	return metaPtr
 }
 
-// setupEnv parses args and may replace them and sets some env vars to known
-// values based on format options
-func SetupEnv(args []string) {
+// scanNoColor reports whether --no-color was passed in args. The UI is
+// created before any flags are parsed, so the flag is detected ahead of time.
+// Scanning stops at `--`, which ends flag parsing.
+func scanNoColor(args []string) bool {
 	noColor := false
 	for _, arg := range args {
-		// Check if color is set
-		if arg == "-no-color" || arg == "--no-color" {
+		if arg == "--" {
+			break
+		}
+
+		if arg == "--no-color" {
 			noColor = true
+			continue
+		}
+
+		if value, ok := strings.CutPrefix(arg, "--no-color="); ok {
+			if b, err := strconv.ParseBool(value); err == nil {
+				noColor = b
+			}
 		}
 	}
 
-	// Put back into the env for later
-	if noColor {
-		os.Setenv(EnvCLINoColor, "true")
-	}
+	return noColor
 }

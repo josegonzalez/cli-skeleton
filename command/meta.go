@@ -10,7 +10,6 @@ import (
 	"github.com/mitchellh/colorstring"
 	"github.com/posener/complete"
 	flag "github.com/spf13/pflag"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 const (
@@ -36,8 +35,14 @@ type Meta struct {
 
 	Context context.Context
 
-	// Whether to not-colorize output
+	// Whether to not-colorize output, as set by the --no-color flag
 	noColor bool
+
+	// Whether color was disabled before flags were parsed
+	colorDisabled bool
+
+	// The name of the cli tool
+	appName string
 }
 
 // FlagSet returns a FlagSet with the common flags that every
@@ -65,14 +70,14 @@ func (m *Meta) AutocompleteFlags(fs FlagSetFlags) complete.Flags {
 	}
 
 	return complete.Flags{
-		"-no-color": complete.PredictNothing,
+		"--no-color": complete.PredictNothing,
 	}
 }
 
 func (m *Meta) Colorize() *colorstring.Colorize {
 	return &colorstring.Colorize{
 		Colors:  colorstring.DefaultColors,
-		Disable: m.noColor || !terminal.IsTerminal(int(os.Stdout.Fd())),
+		Disable: !ColorEnabled(os.Stdout, m.appName, m.noColor || m.colorDisabled),
 		Reset:   true,
 	}
 }
