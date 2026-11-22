@@ -3,14 +3,15 @@ package command
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
 	"github.com/posener/complete"
 	flag "github.com/spf13/pflag"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 const (
@@ -24,9 +25,48 @@ const (
 type FlagSetFlags uint
 
 const (
-	FlagSetNone    FlagSetFlags = 0
-	FlagSetClient  FlagSetFlags = 1 << iota
-	FlagSetDefault              = FlagSetClient
+	FlagSetNone FlagSetFlags = 0
+
+	// FlagSetClient adds the framework-global flags: --no-color,
+	// --no-input, -q/--quiet, -d/--debug and --no-pager. Their values are
+	// shared by every command and resolved before the UI is built.
+	FlagSetClient FlagSetFlags = 1 << iota
+
+	// FlagSetJSON adds --json, read with Meta.IsJSON.
+	FlagSetJSON
+
+	// FlagSetPlain adds --plain, read with Meta.IsPlain.
+	FlagSetPlain
+
+	// FlagSetForce adds -f/--force, read with Meta.IsForce.
+	FlagSetForce
+
+	// FlagSetDryRun adds -n/--dry-run, read with Meta.IsDryRun.
+	FlagSetDryRun
+
+	// FlagSetConfirm adds --confirm, used by Meta.ConfirmName.
+	FlagSetConfirm
+
+	// FlagSetTimeout adds --timeout, read with Meta.Timeout and
+	// Meta.TimeoutContext.
+	FlagSetTimeout
+
+	// FlagSetOutput adds -o/--output, opened with Meta.OutputWriter.
+	FlagSetOutput
+
+	// FlagSetAll adds -a/--all, read with Meta.IsAll.
+	FlagSetAll
+
+	// FlagSetPort adds -p/--port, read with Meta.Port.
+	FlagSetPort
+
+	// FlagSetUser adds -u/--user, read with Meta.User.
+	FlagSetUser
+
+	// FlagSetDefault adds the framework-global flags and every standard flag.
+	FlagSetDefault = FlagSetClient | FlagSetJSON | FlagSetPlain | FlagSetForce |
+		FlagSetDryRun | FlagSetConfirm | FlagSetTimeout | FlagSetOutput |
+		FlagSetAll | FlagSetPort | FlagSetUser
 )
 
 // Meta contains the meta-options and functionality that nearly
@@ -36,8 +76,187 @@ type Meta struct {
 
 	Context context.Context
 
-	// Whether to not-colorize output
-	noColor bool
+	// The name of the cli tool
+	appName string
+
+	// The version of the cli tool
+	version string
+
+	// The settings shared by every command in the run
+	settings *Settings
+
+	// The interrupt handler of the run
+	interrupts *interruptHandler
+
+	// The URL where users report bugs
+	issueURL string
+
+	// Where debugging output is written under --debug
+	stderr io.Writer
+
+	// The file named by <APP>_DEBUG_LOG, when set
+	debugLog io.Writer
+
+	// Where help and other direct output is written
+	stdout io.Writer
+
+	// The process stdout and stderr, used to detect terminals
+	stdoutFile *os.File
+	stderrFile *os.File
+
+	// The app description and examples shown in the top-level help
+	description string
+	examples    []Example
+
+	// Links shown at the bottom of help output
+	docsURL    string
+	supportURL string
+
+	// Hidden commands and aliases, shared by every command of the run
+	registry *commandRegistry
+
+	// The values of the opt-in standard flags of the command
+	flags commandFlags
+
+	// The defaults of --timeout and --port
+	defaultTimeout *time.Duration
+	defaultPort    int
+
+	// The flag groups the command added with FlagSet
+	flagBits FlagSetFlags
+
+	// The stdin of the run
+	stdin io.Reader
+
+	// The name of the running command
+	commandName string
+
+	// The progress renderer and log shared by the run
+	progressState *progressState
+
+	// Forces a progress mode, for tests
+	progressModeOverride string
+
+	// How many output lines running steps show
+	tailLines *int
+
+	// The merged config files, when WithConfig is used
+	config *configData
+
+	// Flags bound to environment variables with EnvFlag
+	envFlags map[string]string
+
+	// Where each flag value came from
+	valueSources map[string]string
+}
+
+// commandRegistry holds the hidden commands and aliases of a run. It is
+// shared by pointer, since commands receive their copy of Meta before
+// aliases and deprecated commands are registered.
+type commandRegistry struct {
+	hidden   []string
+	aliases  map[string]string
+	commands map[string]cli.CommandFactory
+}
+
+// writeOut writes text to stdout, bypassing any log formatting of the UI.
+func (m *Meta) writeOut(text string) {
+	w := m.stdout
+	if w == nil {
+		w = os.Stdout
+	}
+	fmt.Fprint(w, ensureNewline(text))
+}
+
+// writeErr writes text to stderr, bypassing any log formatting of the UI.
+func (m *Meta) writeErr(text string) {
+	w := m.stderr
+	if w == nil {
+		w = os.Stderr
+	}
+	fmt.Fprint(w, ensureNewline(text))
+}
+
+func ensureNewline(text string) string {
+	if strings.HasSuffix(text, "\n") {
+		return text
+	}
+	return text + "\n"
+}
+
+// meta returns the Meta. Commands satisfy the Command interface by
+// embedding Meta.
+func (m *Meta) meta() *Meta {
+	return m
+}
+
+// NewMeta returns a Meta for an app outside of Main, such as in tests. Its
+// UI writes to stdout and stderr.
+func NewMeta(ctx context.Context, appName string, version string) *Meta {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return &Meta{
+		Ui:            NewTerminalUi(appName, false),
+		Context:       ctx,
+		appName:       appName,
+		version:       version,
+		settings:      &Settings{},
+		registry:      &commandRegistry{},
+		progressState: &progressState{},
+	}
+}
+
+// AppName returns the name of the cli tool.
+func (m *Meta) AppName() string {
+	return m.appName
+}
+
+// Version returns the version of the cli tool.
+func (m *Meta) Version() string {
+	return m.version
+}
+
+// ensureSettings returns the run settings, creating empty ones when the Meta
+// was not created by Main.
+func (m *Meta) ensureSettings() *Settings {
+	if m.settings == nil {
+		m.settings = &Settings{}
+	}
+	return m.settings
+}
+
+// IsNoColor reports whether --no-color was passed.
+func (m *Meta) IsNoColor() bool {
+	return m.ensureSettings().NoColor
+}
+
+// IsNoInput reports whether --no-input was passed.
+func (m *Meta) IsNoInput() bool {
+	return m.ensureSettings().NoInput
+}
+
+// IsQuiet reports whether -q/--quiet was passed.
+func (m *Meta) IsQuiet() bool {
+	return m.ensureSettings().Quiet
+}
+
+// IsDebug reports whether debugging output is enabled through -d/--debug,
+// DEBUG or <APP>_DEBUG.
+func (m *Meta) IsDebug() bool {
+	return m.ensureSettings().Debug
+}
+
+// IsVerbose reports whether verbose output is enabled through
+// <APP>_VERBOSE or debug mode.
+func (m *Meta) IsVerbose() bool {
+	s := m.ensureSettings()
+	return s.Verbose || s.Debug
+}
+
+// IsNoPager reports whether --no-pager was passed.
+func (m *Meta) IsNoPager() bool {
+	return m.ensureSettings().NoPager
 }
 
 // FlagSet returns a FlagSet with the common flags that every
@@ -47,11 +266,11 @@ type Meta struct {
 func (m *Meta) FlagSet(n string, fs FlagSetFlags) *flag.FlagSet {
 	f := flag.NewFlagSet(n, flag.ContinueOnError)
 
-	// FlagSetClient is used to enable the settings for specifying
-	// client connectivity options.
 	if fs&FlagSetClient != 0 {
-		f.BoolVar(&m.noColor, "no-color", false, "disables colored command output. Alternatively, NO_COLOR may be set.")
+		addClientFlags(f, m.ensureSettings(), m.appName)
 	}
+	m.addStandardFlags(f, fs)
+	m.flagBits |= fs
 
 	f.SetOutput(&uiErrorWriter{ui: m.Ui})
 
@@ -60,19 +279,31 @@ func (m *Meta) FlagSet(n string, fs FlagSetFlags) *flag.FlagSet {
 
 // AutocompleteFlags returns a set of flag completions for the given flag set.
 func (m *Meta) AutocompleteFlags(fs FlagSetFlags) complete.Flags {
-	if fs&FlagSetClient == 0 {
-		return nil
+	flags := standardFlagCompletions(fs)
+	if fs&FlagSetClient != 0 {
+		for name, predictor := range map[string]complete.Predictor{
+			"--no-color": complete.PredictNothing,
+			"--no-input": complete.PredictNothing,
+			"--quiet":    complete.PredictNothing,
+			"-q":         complete.PredictNothing,
+			"--debug":    complete.PredictNothing,
+			"-d":         complete.PredictNothing,
+			"--no-pager": complete.PredictNothing,
+		} {
+			flags[name] = predictor
+		}
 	}
 
-	return complete.Flags{
-		"-no-color": complete.PredictNothing,
+	if len(flags) == 0 {
+		return nil
 	}
+	return flags
 }
 
 func (m *Meta) Colorize() *colorstring.Colorize {
 	return &colorstring.Colorize{
 		Colors:  colorstring.DefaultColors,
-		Disable: m.noColor || !terminal.IsTerminal(int(os.Stdout.Fd())),
+		Disable: !ColorEnabled(os.Stdout, m.appName, m.IsNoColor()),
 		Reset:   true,
 	}
 }
@@ -88,27 +319,3 @@ type funcVar func(s string) error
 func (f funcVar) Set(s string) error { return f(s) }
 func (f funcVar) String() string     { return "" }
 func (f funcVar) IsBoolFlag() bool   { return false }
-
-func ExampleString(examples map[string]string) string {
-	exampleString := []string{}
-
-	for name, example := range examples {
-		exampleString = append(exampleString, "  "+name+"\n    $ "+example)
-	}
-
-	return strings.Join(exampleString, "\n\n")
-}
-
-func FlagString(flags *flag.FlagSet) string {
-	flagString := []string{}
-
-	flags.VisitAll(func(f *flag.Flag) {
-		if f.DefValue == "true" || f.DefValue == "false" {
-			flagString = append(flagString, fmt.Sprintf("--%s", f.Name))
-			return
-		}
-
-		flagString = append(flagString, fmt.Sprintf("--%s <%[1]s-value>", f.Name))
-	})
-	return strings.Join(flagString, " ")
-}

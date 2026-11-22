@@ -3,8 +3,11 @@ package command
 import (
 	"bytes"
 	"fmt"
+	"io"
+	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Argument struct {
@@ -14,6 +17,16 @@ type Argument struct {
 	Type        ArgumentType
 	Value       interface{}
 	HasValue    bool
+
+	// Prompt is the question asked for a missing required argument when
+	// stdin is a terminal and --no-input was not passed. Without a prompt,
+	// or when prompting is not possible, a missing argument is a usage
+	// error.
+	Prompt string
+
+	// Validate checks each value of the argument before the command runs.
+	// A returned error is reported as a usage error.
+	Validate func(value string) error
 }
 
 // ArgumentType is an enum to define what arguments are present
@@ -24,6 +37,15 @@ const (
 	ArgumentInt    ArgumentType = 1 << iota
 	ArgumentBool   ArgumentType = 2 << iota
 	ArgumentList   ArgumentType = 3 << iota
+
+	// ArgumentFile is a path to an existing file, or `-` for stdin.
+	ArgumentFile ArgumentType = 32
+
+	// ArgumentDuration is a duration such as `5m` or `1h30m`.
+	ArgumentDuration ArgumentType = 64
+
+	// ArgumentFloat is a floating point number.
+	ArgumentFloat ArgumentType = 128
 )
 
 func (a Argument) BoolValue() bool {
@@ -48,6 +70,41 @@ func (a Argument) StringValue() string {
 	}
 
 	return a.Value.(string)
+}
+
+// FileValue opens the file named by an ArgumentFile argument, or stdin when
+// it is `-`. The caller must close it.
+func (a Argument) FileValue() (io.ReadCloser, error) {
+	if a.Type != ArgumentFile {
+		panic(fmt.Errorf("Unexpected argument type for %s when calling FileValue()", a.Name))
+	}
+
+	return OpenInput(a.Value.(string))
+}
+
+// PathValue returns the path of an ArgumentFile argument.
+func (a Argument) PathValue() string {
+	if a.Type != ArgumentFile {
+		panic(fmt.Errorf("Unexpected argument type for %s when calling PathValue()", a.Name))
+	}
+
+	return a.Value.(string)
+}
+
+func (a Argument) DurationValue() time.Duration {
+	if a.Type != ArgumentDuration {
+		panic(fmt.Errorf("Unexpected argument type for %s when calling DurationValue()", a.Name))
+	}
+
+	return a.Value.(time.Duration)
+}
+
+func (a Argument) FloatValue() float64 {
+	if a.Type != ArgumentFloat {
+		panic(fmt.Errorf("Unexpected argument type for %s when calling FloatValue()", a.Name))
+	}
+
+	return a.Value.(float64)
 }
 
 func (a Argument) ListValue() []string {
@@ -77,7 +134,14 @@ func ArgumentAsString(arguments []Argument) string {
 	return strings.Join(argumentString, " ")
 }
 
+// ArgumentsString renders the arguments section of help output.
 func ArgumentsString(arguments []Argument) string {
+	return argumentsString(arguments, 0)
+}
+
+// argumentsString renders the arguments section of help output, wrapping
+// descriptions to cols columns. Zero disables wrapping.
+func argumentsString(arguments []Argument, cols int) string {
 	maxlen := 0
 	lines := make([]string, 0, len(arguments))
 	for _, argument := range arguments {
@@ -89,9 +153,9 @@ func ArgumentsString(arguments []Argument) string {
 		}
 
 		if argument.Optional {
-			line = fmt.Sprintf("      [%s%s]", argument.Name, suffix)
+			line = fmt.Sprintf("  [%s%s]", argument.Name, suffix)
 		} else {
-			line = fmt.Sprintf("      <%s%s>", argument.Name, suffix)
+			line = fmt.Sprintf("  <%s%s>", argument.Name, suffix)
 		}
 
 		switch argument.Type {
@@ -101,6 +165,12 @@ func ArgumentsString(arguments []Argument) string {
 			line += " int"
 		case ArgumentBool:
 			line += " bool"
+		case ArgumentFile:
+			line += " file"
+		case ArgumentDuration:
+			line += " duration"
+		case ArgumentFloat:
+			line += " float"
 		}
 
 		line += "\x00"
@@ -113,7 +183,6 @@ func ArgumentsString(arguments []Argument) string {
 	}
 
 	buf := new(bytes.Buffer)
-	cols := 0
 	for _, line := range lines {
 		sidx := strings.Index(line, "\x00")
 		spacing := strings.Repeat(" ", maxlen-sidx)
@@ -121,7 +190,7 @@ func ArgumentsString(arguments []Argument) string {
 		fmt.Fprintln(buf, line[:sidx], spacing, wrap(maxlen+2, cols, line[sidx+1:]))
 	}
 
-	return buf.String()
+	return strings.TrimRight(buf.String(), "\n")
 }
 
 // Splits the string `s` on whitespace into an initial substring up to
@@ -246,39 +315,53 @@ func ParseArguments(args []string, arguments []Argument) (map[string]Argument, e
 	hasListArgument := false
 	listIndex := 0
 	for i, value := range args {
+		index := i
+		if hasListArgument {
+			index = listIndex
+		}
+
+		if validate := arguments[index].Validate; validate != nil {
+			if err := validate(value); err != nil {
+				return returnArguments, fmt.Errorf("Invalid value for argument %s: %w", arguments[index].Name, err)
+			}
+		}
+
 		if hasListArgument {
 			arguments[listIndex].HasValue = true
 			arguments[listIndex].Value = append(arguments[listIndex].Value.([]string), value)
-		} else {
-			arguments[i].HasValue = true
-			if arguments[i].Type == ArgumentList {
-				hasListArgument = true
-				listIndex = i
-				arguments[i].Value = []string{value}
-			} else {
-				if arguments[i].Type == ArgumentInt {
-					intValue, err := strconv.Atoi(value)
-					if err != nil {
-						return returnArguments, fmt.Errorf("Invalid value for argument %s", arguments[i].Name)
-					}
-					arguments[i].Value = intValue
-				} else {
-					arguments[i].Value = value
-				}
-			}
+			continue
 		}
+
+		arguments[i].HasValue = true
+		if arguments[i].Type == ArgumentList {
+			hasListArgument = true
+			listIndex = i
+			arguments[i].Value = []string{value}
+			continue
+		}
+
+		parsed, err := parseArgumentValue(arguments[i], value)
+		if err != nil {
+			return returnArguments, err
+		}
+		arguments[i].Value = parsed
 	}
 
 	for _, argument := range arguments {
 		if argument.Value == nil {
-			if argument.Type == ArgumentBool {
+			switch argument.Type {
+			case ArgumentBool:
 				argument.Value = false
-			} else if argument.Type == ArgumentInt {
+			case ArgumentInt:
 				argument.Value = 0
-			} else if argument.Type == ArgumentList {
+			case ArgumentList:
 				argument.Value = []string{}
-			} else if argument.Type == ArgumentString {
+			case ArgumentString, ArgumentFile:
 				argument.Value = ""
+			case ArgumentDuration:
+				argument.Value = time.Duration(0)
+			case ArgumentFloat:
+				argument.Value = float64(0)
 			}
 			argument.HasValue = false
 		}
@@ -286,6 +369,51 @@ func ParseArguments(args []string, arguments []Argument) (map[string]Argument, e
 	}
 
 	return returnArguments, nil
+}
+
+// parseArgumentValue converts a single value to the type of the argument.
+func parseArgumentValue(argument Argument, value string) (interface{}, error) {
+	invalid := fmt.Errorf("Invalid value for argument %s", argument.Name)
+
+	switch argument.Type {
+	case ArgumentInt:
+		intValue, err := strconv.Atoi(value)
+		if err != nil {
+			return nil, invalid
+		}
+		return intValue, nil
+	case ArgumentBool:
+		boolValue, err := strconv.ParseBool(value)
+		if err != nil {
+			return nil, invalid
+		}
+		return boolValue, nil
+	case ArgumentDuration:
+		duration, err := time.ParseDuration(value)
+		if err != nil {
+			return nil, fmt.Errorf("Invalid value for argument %s: expected a duration such as 30s or 5m", argument.Name)
+		}
+		return duration, nil
+	case ArgumentFloat:
+		floatValue, err := strconv.ParseFloat(value, 64)
+		if err != nil {
+			return nil, invalid
+		}
+		return floatValue, nil
+	case ArgumentFile:
+		if value != "-" {
+			info, err := os.Stat(value)
+			if err != nil {
+				return nil, fmt.Errorf("Invalid value for argument %s: no such file %s", argument.Name, value)
+			}
+			if info.IsDir() {
+				return nil, fmt.Errorf("Invalid value for argument %s: %s is a directory", argument.Name, value)
+			}
+		}
+		return value, nil
+	default:
+		return value, nil
+	}
 }
 
 func validateArguments(arguments []Argument) error {

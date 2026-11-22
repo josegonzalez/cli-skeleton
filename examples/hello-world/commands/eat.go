@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/josegonzalez/cli-skeleton/command"
 	"github.com/posener/complete"
@@ -28,13 +27,13 @@ func (c *EatCommand) Help() string {
 	return command.CommandHelp(c)
 }
 
-func (c *EatCommand) Examples() map[string]string {
-	appName := os.Getenv("CLI_APP_NAME")
-	return map[string]string{
-		"Eats one lollipop quickly":  fmt.Sprintf("%s %s quickly", appName, c.Name()),
-		"Eats one lollipop slowly":   fmt.Sprintf("%s %s slowly", appName, c.Name()),
-		"Eats two lollipops quickly": fmt.Sprintf("%s %s --count 2 quickly", appName, c.Name()),
-		"Eats three red lollipops":   fmt.Sprintf("%s %s --count 3 --color red", appName, c.Name()),
+func (c *EatCommand) Examples() []command.Example {
+	appName := c.AppName()
+	return []command.Example{
+		{Description: "Eats one lollipop quickly", Command: fmt.Sprintf("%s %s quickly", appName, c.Name())},
+		{Description: "Eats one lollipop slowly", Command: fmt.Sprintf("%s %s slowly", appName, c.Name())},
+		{Description: "Eats two lollipops quickly", Command: fmt.Sprintf("%s %s --count 2 quickly", appName, c.Name())},
+		{Description: "Eats three red lollipops", Command: fmt.Sprintf("%s %s --count 3 --color red", appName, c.Name())},
 	}
 }
 
@@ -51,10 +50,6 @@ func (c *EatCommand) Arguments() []command.Argument {
 
 func (c *EatCommand) AutocompleteArgs() complete.Predictor {
 	return complete.PredictNothing
-}
-
-func (c *EatCommand) ParsedArguments(args []string) (map[string]command.Argument, error) {
-	return command.ParseArguments(args, c.Arguments())
 }
 
 func (c *EatCommand) FlagSet() *flag.FlagSet {
@@ -75,27 +70,14 @@ func (c *EatCommand) AutocompleteFlags() complete.Flags {
 }
 
 func (c *EatCommand) Run(args []string) int {
-	flags := c.FlagSet()
-	flags.Usage = func() { c.Ui.Output(c.Help()) }
-	if err := flags.Parse(args); err != nil {
-		c.Ui.Error(err.Error())
-		c.Ui.Error(command.CommandErrorText(c))
-		return 1
-	}
+	return command.Execute(c, args, func(arguments map[string]command.Argument) error {
+		name := arguments["speed"].StringValue()
+		if name == "" {
+			name = "normally"
+		}
 
-	arguments, err := c.ParsedArguments(flags.Args())
-	if err != nil {
-		c.Ui.Error(err.Error())
-		c.Ui.Error(command.CommandErrorText(c))
-		return 1
-	}
+		c.Ui.Output(fmt.Sprintf("Eating %d %v lollipop(s) %v", c.count, c.color, name))
 
-	name := arguments["speed"].StringValue()
-	if name == "" {
-		name = "normally"
-	}
-
-	c.Ui.Output(fmt.Sprintf("Eating %d %v lollipop(s) %v", c.count, c.color, name))
-
-	return 0
+		return nil
+	})
 }

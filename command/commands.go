@@ -2,10 +2,7 @@ package command
 
 import (
 	"context"
-	"os"
-	"strings"
 
-	colorable "github.com/mattn/go-colorable"
 	"github.com/mitchellh/cli"
 	flag "github.com/spf13/pflag"
 )
@@ -15,8 +12,10 @@ const (
 	EnvCLINoColor = `NO_COLOR`
 )
 
-// NamedCommand is a interface to denote a commmand's name.
+// NamedCommand is a interface to denote a commmand's name. AppName is
+// provided by embedding Meta.
 type NamedCommand interface {
+	AppName() string
 	Name() string
 }
 
@@ -31,56 +30,23 @@ func Commands(ctx context.Context, metaPtr *Meta, commandsFunc CommandFunc) map[
 
 	meta := *metaPtr
 	if meta.Ui == nil {
-		meta.Ui = &cli.BasicUi{
-			Reader:      os.Stdin,
-			Writer:      colorable.NewColorableStdout(),
-			ErrorWriter: colorable.NewColorableStderr(),
-		}
+		meta.Ui = NewTerminalUi(meta.appName, meta.IsNoColor())
 	}
 	meta.Context = ctx
 
 	return commandsFunc(ctx, meta)
 }
 
+// Command is implemented by every cli-skeleton command. Commands satisfy it
+// by embedding Meta, which provides AppName and the unexported accessors
+// used by Execute.
 type Command interface {
+	meta() *Meta
+
+	AppName() string
 	Name() string
 	FlagSet() *flag.FlagSet
 	Arguments() []Argument
 	Synopsis() string
-	Examples() map[string]string
-}
-
-func CommandHelp(c Command) string {
-	appName := os.Getenv("CLI_APP_NAME")
-	helpText := `
-Usage: ` + appName + ` ` + c.Name() + ` ` + FlagString(c.FlagSet()) + ` ` + ArgumentAsString(c.Arguments()) + `
-
-  ` + c.Synopsis()
-
-	options := c.FlagSet().FlagUsages()
-	if options != "" {
-		helpText += `
-
-Options:
-
-` + options
-	}
-
-	arguments := ArgumentsString(c.Arguments())
-	if arguments != "" {
-		helpText += `
-Arguments:
-
-` + arguments
-	}
-
-	examples := ExampleString(c.Examples())
-	if examples != "" {
-		helpText += `
-Examples:
-
-` + examples
-	}
-
-	return strings.TrimSpace(helpText) + "\n"
+	Examples() []Example
 }
