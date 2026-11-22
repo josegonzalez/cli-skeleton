@@ -236,6 +236,22 @@ func Main(ctx context.Context, appName string, version string, args []string, co
 	hideDeprecatedCommands(meta, commands)
 	addAliases(meta, commands, o.aliases)
 
+	if isCompletionRequest() {
+		addParentCommands(meta, commands)
+		c := &cli.CLI{
+			Name:           appName,
+			Version:        version,
+			Args:           args,
+			Commands:       commands,
+			HiddenCommands: meta.hiddenCommands(),
+			Autocomplete:   true,
+			HelpWriter:     stdout,
+			ErrorWriter:    stderr,
+		}
+		return runCLI(c, meta)
+	}
+
+	args = rewriteAutocompleteArgs(args)
 	args = rewriteHelpArgs(moveGlobalFlags(args, knownFlags, commands), commands)
 	if len(args) == 0 {
 		meta.writeErr(meta.topLevelHelp(meta.visibleCommands(commands), true))
@@ -280,6 +296,12 @@ func addBuiltinCommands(meta *Meta, commands map[string]cli.CommandFactory) {
 	if _, ok := commands["examples"]; !ok {
 		commands["examples"] = func() (cli.Command, error) {
 			return &examplesCommand{Meta: *meta, commands: commands}, nil
+		}
+	}
+
+	if _, ok := commands["completion"]; !ok {
+		commands["completion"] = func() (cli.Command, error) {
+			return &completionCommand{Meta: *meta}, nil
 		}
 	}
 
