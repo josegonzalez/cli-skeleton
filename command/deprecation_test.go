@@ -129,4 +129,9 @@ func TestAliases(t *testing.T) {
 	if got.code != ExitCodeUnknownCommand {
 		t.Fatalf("commands should never be matched by prefix: %d", got.code)
 	}
+
+	got = runTestMain(t, []string{"rn"}, commands, aliases)
+	if strings.Contains(got.stderr, `"rm"`) {
+		t.Fatalf("hidden aliases should not be suggested: %q", got.stderr)
+	}
 }

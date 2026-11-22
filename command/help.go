@@ -509,22 +509,23 @@ func rewriteHelpArgs(args []string, commands map[string]cli.CommandFactory) []st
 }
 
 // unknownCommand checks whether args name a command. It returns the
-// unrecognized word and the commands it was checked against, or an empty
-// string when the command exists or args start with a flag.
-func unknownCommand(args []string, commands map[string]cli.CommandFactory) (string, []string) {
+// unrecognized word, the parent command it was looked up under, and the
+// sibling words it was checked against, or an empty string when the
+// command exists or args start with a flag.
+func unknownCommand(args []string, commands map[string]cli.CommandFactory) (string, string, []string) {
 	if len(args) == 0 || strings.HasPrefix(args[0], "-") {
-		return "", nil
+		return "", "", nil
 	}
 
 	prefix := ""
 	for _, arg := range args {
 		if strings.HasPrefix(arg, "-") {
-			return "", nil
+			return "", "", nil
 		}
 
 		candidates := childCommands(prefix, commands)
 		if len(candidates) == 0 {
-			return "", nil
+			return "", "", nil
 		}
 
 		name := strings.TrimSpace(prefix + " " + arg)
@@ -534,18 +535,18 @@ func unknownCommand(args []string, commands map[string]cli.CommandFactory) (stri
 				if _, parentExists := commands[prefix]; parentExists {
 					// A parent command with its own factory may take
 					// positional arguments.
-					return "", nil
+					return "", "", nil
 				}
 			}
-			return arg, candidates
+			return arg, prefix, candidates
 		}
 
 		if !hasChildren(name, commands) {
-			return "", nil
+			return "", "", nil
 		}
 		prefix = name
 	}
-	return "", nil
+	return "", "", nil
 }
 
 // childCommands returns the next word of every command under prefix.

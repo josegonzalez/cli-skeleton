@@ -3,6 +3,7 @@ package command
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/mitchellh/cli"
 	flag "github.com/spf13/pflag"
@@ -109,12 +110,12 @@ func hideDeprecatedCommands(meta *Meta, commands map[string]cli.CommandFactory) 
 	}
 }
 
-// visibleNames removes hidden commands from names.
-func (m *Meta) visibleNames(names []string) []string {
-	visible := make([]string, 0, len(names))
-	for _, name := range names {
-		if !m.isHidden(name) {
-			visible = append(visible, name)
+// visibleChildren removes hidden commands from the child words of parent.
+func (m *Meta) visibleChildren(parent string, words []string) []string {
+	visible := make([]string, 0, len(words))
+	for _, word := range words {
+		if !m.isHidden(strings.TrimSpace(parent + " " + word)) {
+			visible = append(visible, word)
 		}
 	}
 	return visible

@@ -351,12 +351,12 @@ func addParentCommands(meta *Meta, commands map[string]cli.CommandFactory) {
 // false with the exit code when the command is unknown.
 func (m *Meta) resolveUnknownCommand(args []string, commands map[string]cli.CommandFactory) ([]string, int, bool) {
 	for attempt := 0; attempt < len(args); attempt++ {
-		word, candidates := unknownCommand(args, commands)
+		word, parent, candidates := unknownCommand(args, commands)
 		if word == "" {
 			return args, ExitCodeOK, true
 		}
 
-		candidates = m.visibleNames(candidates)
+		candidates = m.visibleChildren(parent, candidates)
 		suggestions := Suggest(word, candidates)
 		if len(suggestions) != 1 || !m.CanPrompt() {
 			return args, m.reportUnknownCommand(word, candidates), false
