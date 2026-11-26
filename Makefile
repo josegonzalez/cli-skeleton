@@ -3,6 +3,7 @@ LDFLAGS := -X main.Version=$(VERSION)
 
 .PHONY: build
 build:
+	cd cmd/cli-skeleton && go build -ldflags "$(LDFLAGS)"
 	cd examples/global && go mod tidy && go build -ldflags "$(LDFLAGS)"
 	cd examples/hello-world && go mod tidy && go build -ldflags "$(LDFLAGS)"
 	cd examples/human-readable-logging && go mod tidy && go build -ldflags "$(LDFLAGS)"
@@ -13,6 +14,7 @@ build:
 .PHONY: test
 test:
 	go test -race ./...
+	cd cmd/cli-skeleton && go build -ldflags "$(LDFLAGS)"
 	cd examples/global && go test -race ./...
 	cd examples/hello-world && go test -race ./...
 	cd examples/human-readable-logging && go test -race ./...

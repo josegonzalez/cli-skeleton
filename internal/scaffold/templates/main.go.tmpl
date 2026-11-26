@@ -1,0 +1,39 @@
+package main
+
+import (
+	"context"
+	"os"
+
+	"{{.Module}}/commands"
+
+	"github.com/josegonzalez/cli-skeleton/command"
+	"github.com/mitchellh/cli"
+)
+
+// The name of the cli tool
+var AppName = {{quote .Name}}
+
+// Holds the version
+var Version string
+
+func main() {
+	os.Exit(command.Main(context.Background(), AppName, Version, os.Args[1:], Commands,
+{{- range .Options}}
+		{{.}},
+{{- end}}
+	))
+}
+
+// Returns a list of implemented commands
+func Commands(ctx context.Context, meta command.Meta) map[string]cli.CommandFactory {
+	return map[string]cli.CommandFactory{
+{{- range .Commands}}
+		{{quote .Name}}: func() (cli.Command, error) {
+			return &commands.{{.Type}}{Meta: meta}, nil
+		},
+{{- end}}
+		"version": func() (cli.Command, error) {
+			return &command.VersionCommand{Meta: meta}, nil
+		},
+	}
+}

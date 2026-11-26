@@ -1,0 +1,13 @@
+---
+name: global
+global_flags:
+  - name: global
+    type: bool
+    usage: a bool global flag
+  - name: global-string
+    usage: a string global flag
+commands:
+  - name: global
+    synopsis: Global command that prints the values of the global flags
+    examples:
+      - description: Prints the values of the global flags

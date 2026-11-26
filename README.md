@@ -21,6 +21,70 @@ For examples on how to perform various tasks, see the following examples:
 
 ## Getting started
 
+### Scaffolding a new project
+
+`cli-skeleton new` sets up a new cli tool in the current directory, or in the directory passed to it:
+
+```shell
+go install github.com/josegonzalez/cli-skeleton/cmd/cli-skeleton@latest
+cli-skeleton new my-app
+```
+
+It asks for the name, Go module path, description, log output and config support of the app, and then for each command: its name, synopsis, description, standard flags, arguments, flags and examples. It then writes a `main.go`, a `main_test.go` that runs `commandtest.ValidateCommands`, one file per command under `commands/` with a `Run` method to fill in, a `go.mod` and a `.gitignore`, and runs `go get` and `go mod tidy`.
+
+Pass `--spec` to read the same details from a YAML file, or `-` for stdin, instead of answering questions. `--save-spec` saves the answers as a spec, `--dry-run` shows what would be written, `--no-tidy` skips the go commands, and `--skeleton-path` uses a local checkout of `cli-skeleton`. Existing files are never overwritten unless `--force` is passed.
+
+```yaml
+---
+name: my-app
+module: github.com/me/my-app # defaults to the name
+description: Manages apps.
+examples:
+  - description: Create an app
+    command: app create my-app # what follows the app name
+ui: default # default, zerolog or human-zerolog
+config: true # read flag defaults with command.WithConfig
+docs_url: https://example.com/docs
+support_url: https://example.com/support
+issue_url: https://example.com/issues/new
+aliases:
+  app ls: app list
+global_flags: # accepted by every command, before or after its name
+  - name: region
+    usage: the region to use
+commands:
+  - name: app create
+    synopsis: Create an app
+    description: Creates an app and prints its URL.
+    deprecated: "" # set to a message to hide the command and warn when it is used
+    flag_sets: [client, force, dry-run] # defaults to client
+    arguments:
+      - name: name
+        description: the name of the app
+        type: string # string, int, bool, float, duration, file or list
+        optional: false
+        prompt: What should the app be called?
+    argument_values: [] # offered when completing the arguments
+    flags:
+      - name: count
+        type: int # bool, int, string, float or duration
+        default: "1"
+        usage: number of instances
+        env: true # bind MY_APP_COUNT with Meta.EnvFlag
+        values: ["1", "2", "3"] # offered when completing the value
+    examples:
+      - description: Create an app
+        args: my-app # what follows the command name
+        output: Created my-app
+  - name: app list
+    synopsis: List the apps
+    flag_sets: [client, json, plain]
+```
+
+Aliases, URLs, global flags, deprecation, completion values, environment variables and argument prompts can only be set in a spec. Every example has a `scaffold.yaml` that generates it, apart from the bodies of the `Run` methods.
+
+### Writing commands
+
 A cli tool is a `main.go` that hands its commands to `command.Main`:
 
 ```go
@@ -263,3 +327,5 @@ To test this project, run the unit tests of the library and the examples, then t
 make test
 make test-integration
 ```
+
+The scaffolding tests compare the generated code with golden files in `internal/scaffold/testdata/golden`. After changing the templates or an example spec, refresh them with `go test ./internal/scaffold -update`.

@@ -1,0 +1,31 @@
+package commands
+
+import (
+{{- if .GlobalTime}}
+	"time"
+{{end}}
+	"github.com/posener/complete"
+	flag "github.com/spf13/pflag"
+)
+
+// GlobalFlagCommand holds the app-global flags, which every command accepts
+// before or after its name.
+type GlobalFlagCommand struct {
+{{- range .GlobalFlags}}
+	{{.Field}} {{.GoType}}
+{{- end}}
+}
+
+func (c *GlobalFlagCommand) GlobalFlags(f *flag.FlagSet) {
+{{- range .GlobalFlags}}
+	f.{{.Func}}(&c.{{.Field}}, {{quote .Name}}, {{.Default}}, {{quote .Usage}})
+{{- end}}
+}
+
+func (c *GlobalFlagCommand) AutocompleteGlobalFlags() complete.Flags {
+	return complete.Flags{
+{{- range .GlobalFlags}}
+		{{quote (print "--" .Name)}}: {{.Completion}},
+{{- end}}
+	}
+}

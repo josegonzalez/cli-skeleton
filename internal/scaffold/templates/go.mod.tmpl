@@ -1,0 +1,7 @@
+module {{.Module}}
+{{- if .SkeletonPath}}
+
+require github.com/josegonzalez/cli-skeleton {{.LocalVersion}}
+
+replace github.com/josegonzalez/cli-skeleton => {{.SkeletonPath}}
+{{- end}}

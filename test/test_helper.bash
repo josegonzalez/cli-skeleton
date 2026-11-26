@@ -5,7 +5,9 @@
 
 bats_require_minimum_version 1.5.0
 
-EXAMPLES="$(cd "$BATS_TEST_DIRNAME/../examples" && pwd)"
+REPO="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
+EXAMPLES="$REPO/examples"
+SCAFFOLD="$REPO/cmd/cli-skeleton/cli-skeleton"
 GLOBAL="$EXAMPLES/global/global"
 HELLO="$EXAMPLES/hello-world/hello-world"
 HUMAN="$EXAMPLES/human-readable-logging/human-readable-logging"
@@ -14,7 +16,7 @@ ZEROLOG="$EXAMPLES/zerolog-logging/zerolog-logging"
 ESC=$'\033'
 
 setup() {
-  for binary in "$GLOBAL" "$HELLO" "$HUMAN" "$NESTED" "$ZEROLOG"; do
+  for binary in "$GLOBAL" "$HELLO" "$HUMAN" "$NESTED" "$ZEROLOG" "$SCAFFOLD"; do
     if [[ ! -x "$binary" ]]; then
       echo "missing $binary; run 'make build' first" >&2
       return 1

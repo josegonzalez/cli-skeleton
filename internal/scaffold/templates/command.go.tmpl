@@ -1,0 +1,124 @@
+package commands
+
+import (
+{{- if .UsesTime}}
+	"time"
+{{end}}
+	"github.com/josegonzalez/cli-skeleton/command"
+	"github.com/posener/complete"
+	flag "github.com/spf13/pflag"
+)
+{{- if .FlagSetsConst}}
+
+const {{.FlagSetsConst}} = {{.FlagSetsExpr}}
+{{- end}}
+
+type {{.Type}} struct {
+	command.Meta
+{{- if .Global}}
+	GlobalFlagCommand
+{{- end}}
+{{- if .Flags}}
+{{range .Flags}}
+	{{.Field}} {{.GoType}}
+{{- end}}
+{{- end}}
+}
+
+func (c *{{.Type}}) Name() string {
+	return {{quote .Name}}
+}
+
+func (c *{{.Type}}) Synopsis() string {
+	return {{quote .Synopsis}}
+}
+{{- if .Description}}
+
+func (c *{{.Type}}) Description() string {
+	return {{quote .Description}}
+}
+{{- end}}
+{{- if .Deprecated}}
+
+func (c *{{.Type}}) Deprecated() string {
+	return {{quote .Deprecated}}
+}
+{{- end}}
+
+func (c *{{.Type}}) Help() string {
+	return command.CommandHelp(c)
+}
+
+func (c *{{.Type}}) Examples() []command.Example {
+{{- if .Examples}}
+	appName := c.AppName()
+	return []command.Example{
+{{- range .Examples}}
+		{ {{- .}}},
+{{- end}}
+	}
+{{- else}}
+	return []command.Example{}
+{{- end}}
+}
+
+func (c *{{.Type}}) Arguments() []command.Argument {
+	return []command.Argument{
+{{- range .Arguments}}
+		{
+			Name:        {{quote .Name}},
+			Description: {{quote .Description}},
+{{- if .Optional}}
+			Optional:    true,
+{{- end}}
+			Type:        {{.Type}},
+{{- if .Prompt}}
+			Prompt:      {{quote .Prompt}},
+{{- end}}
+		},
+{{- end}}
+	}
+}
+
+func (c *{{.Type}}) AutocompleteArgs() complete.Predictor {
+{{- if .ArgumentValues}}
+	return {{.ArgumentValues}}
+{{- else}}
+	return complete.PredictNothing
+{{- end}}
+}
+
+func (c *{{.Type}}) FlagSet() *flag.FlagSet {
+	f := c.Meta.FlagSet(c.Name(), {{.FlagSetsRef}})
+{{- if .Global}}
+	c.GlobalFlags(f)
+{{- end}}
+{{- range .Flags}}
+	f.{{.Func}}(&c.{{.Field}}, {{quote .Name}}, {{.Default}}, {{quote .Usage}})
+{{- if .Env}}
+	c.EnvFlag(f, {{quote .Name}})
+{{- end}}
+{{- end}}
+	return f
+}
+
+func (c *{{.Type}}) AutocompleteFlags() complete.Flags {
+	return command.MergeAutocompleteFlags(
+		c.Meta.AutocompleteFlags({{.FlagSetsRef}}),
+{{- if .Global}}
+		c.AutocompleteGlobalFlags(),
+{{- end}}
+		complete.Flags{
+{{- range .Flags}}
+			{{quote (print "--" .Name)}}: {{.Completion}},
+{{- end}}
+		},
+	)
+}
+
+func (c *{{.Type}}) Run(args []string) int {
+	return command.Execute(c, args, func(arguments map[string]command.Argument) error {
+		// TODO: implement {{.Name}}
+		return nil
+	})
+}

@@ -1,0 +1,98 @@
+---
+name: nested
+description: An example cli tool with nested commands for managing lollipops.
+examples:
+  - description: List the lollipops
+    command: lollipop list
+  - description: Eat a cherry lollipop
+    command: lollipop eat cherry
+aliases:
+  lollipop ls: lollipop list
+config: true
+support_url: https://github.com/josegonzalez/cli-skeleton/issues
+issue_url: https://github.com/josegonzalez/cli-skeleton/issues/new
+commands:
+  - name: lollipop eat
+    synopsis: Eat lollipops from the jar
+    description: Eating a lollipop removes it from the jar, so you are asked to confirm first. Pass --force to skip the question, or --dry-run to see what would be eaten.
+    flag_sets: [client, force, dry-run]
+    arguments:
+      - name: flavor
+        description: the flavor of lollipop to eat
+        prompt: Which flavor would you like?
+    argument_values: [cherry, grape, lemon, lime]
+    flags:
+      - name: count
+        type: int
+        default: "1"
+        usage: number of lollipops to eat
+        env: true
+    examples:
+      - description: Eat a cherry lollipop
+        args: cherry
+      - description: Eat two grape lollipops without being asked
+        args: grape --count 2 --force
+      - description: See what would be eaten
+        args: lemon --dry-run
+        output: Would eat 1 lemon lollipop(s)
+  - name: lollipop list
+    synopsis: List the lollipops in the jar
+    flag_sets: [client, json, plain, all]
+    examples:
+      - description: List the lollipops left in the jar
+        output: |-
+          FLAVOR   COLOR
+          cherry   red
+          grape    purple
+          lemon    yellow
+      - description: Include the lollipops that were eaten
+        args: --all
+      - description: Print the flavors for scripts
+        args: --plain | cut -f1
+      - description: Print the lollipops as JSON
+        args: --json
+  - name: lollipop munch
+    synopsis: Eat lollipops from the jar
+    description: Eating a lollipop removes it from the jar, so you are asked to confirm first. Pass --force to skip the question, or --dry-run to see what would be eaten.
+    deprecated: use "nested lollipop eat" instead; it will be removed in a future release
+    flag_sets: [client, force, dry-run]
+    arguments:
+      - name: flavor
+        description: the flavor of lollipop to eat
+        prompt: Which flavor would you like?
+    argument_values: [cherry, grape, lemon, lime]
+    flags:
+      - name: count
+        type: int
+        default: "1"
+        usage: number of lollipops to eat
+        env: true
+    examples:
+      - description: Eat a cherry lollipop
+        args: cherry
+      - description: Eat two grape lollipops without being asked
+        args: grape --count 2 --force
+      - description: See what would be eaten
+        args: lemon --dry-run
+        output: Would eat 1 lemon lollipop(s)
+  - name: lollipop savor
+    synopsis: Slowly savor a lollipop
+    description: Savoring takes a while, so progress is shown as it happens. Only one lollipop can be savored at a time; pass --wait to wait for another one to finish. Press Ctrl+C to stop.
+    flag_sets: [client, timeout]
+    flags:
+      - name: duration
+        type: duration
+        default: 3s
+        usage: how long to savor the lollipop
+      - name: wait
+        type: bool
+        usage: wait for another lollipop to be finished instead of failing
+      - name: drop
+        type: bool
+        usage: drop the lollipop halfway through, to show a failed step
+    examples:
+      - description: Savor a lollipop
+      - description: Savor a lollipop for ten seconds
+        args: --duration 10s
+      - description: Wait for another lollipop to be finished first
+        args: --wait
