@@ -1,0 +1,33 @@
+---
+name: hello-world
+description: An example cli tool that eats lollipops.
+examples:
+  - description: Eat a lollipop
+    command: eat
+  - description: Eat two red lollipops quickly
+    command: eat --count 2 --color red quickly
+commands:
+  - name: eat
+    synopsis: Eats one or more lollipops
+    arguments:
+      - name: speed
+        description: how quickly to eat the lollipop
+        optional: true
+    flags:
+      - name: count
+        type: int
+        default: "1"
+        usage: number of lollipops to eat
+      - name: color
+        default: normal
+        usage: the color of the lollipops being eaten
+        values: [red, orange, yellow, green, blue, purple]
+    examples:
+      - description: Eats one lollipop quickly
+        args: quickly
+      - description: Eats one lollipop slowly
+        args: slowly
+      - description: Eats two lollipops quickly
+        args: --count 2 quickly
+      - description: Eats three red lollipops
+        args: --count 3 --color red

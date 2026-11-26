@@ -1,0 +1,7 @@
+---
+name: nil
+commands:
+  - name: nil
+    synopsis: Nil command
+    examples:
+      - description: Does nothing
